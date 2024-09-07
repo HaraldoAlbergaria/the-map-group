@@ -60,6 +60,7 @@
 
     var initial_bbox = [];
     var current_bbox = [];
+    var markers_added = {};
 
     var west = 180;
     var south = 90;
@@ -70,10 +71,15 @@
     var current_index = 0;
     var current_n_markers = 0;
 
+    for (var country_code in locations_dict) {
+      markers_added[country_code] = 0;
+    }
+
     while (!stop) {
       for (var country_code in locations_dict) {
         if (current_index < locations_dict[country_code].length) {
           addMarker(locations_dict[country_code][current_index]);
+          markers_added[country_code]++;
           current_n_markers++;
         }
       }
@@ -82,6 +88,8 @@
       }
       current_index++;
     }
+
+    console.log(markers_added);
 
     initial_bbox = current_bbox;
 
