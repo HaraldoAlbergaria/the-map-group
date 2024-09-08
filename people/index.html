@@ -41,123 +41,149 @@
 
   <script>
 
-    mapboxgl.accessToken = mapbox_token;
+  mapboxgl.accessToken = mapbox_token;
 
-    var map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/streets-v11'
-    });
+  var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v11'
+  });
 
-    map.addControl(new mapboxgl.FullscreenControl({container: document.querySelector('body')}));
-    map.addControl(new mapboxgl.NavigationControl());
+  map.addControl(new mapboxgl.FullscreenControl({container: document.querySelector('body')}));
+  map.addControl(new mapboxgl.NavigationControl());
 
-    var layerList = document.getElementById('menu');
-    var inputs = layerList.getElementsByTagName('input');
+  var layerList = document.getElementById('menu');
+  var inputs = layerList.getElementsByTagName('input');
 
-    for (var i = 0; i < inputs.length; i++) {
-      inputs[i].onclick = switchLayer;
+  for (var i = 0; i < inputs.length; i++) {
+    inputs[i].onclick = switchLayer;
+  }
+
+  var initial_bbox = [];
+  var current_bbox = [];
+  var markers_added = {};
+
+  var west = 180;
+  var south = 90;
+  var east = -180;
+  var north = -90;
+
+  var stop = false;
+  var current_index = 0;
+  var current_n_markers = 0;
+
+  var customized = false;
+
+  for (var country_code in locations_dict) {
+    markers_added[country_code] = 0;
+  }
+
+  addMarkersToMap(max_init_n_markers);
+
+  initial_bbox = current_bbox;
+
+  map.fitBounds([
+    [current_bbox[0], current_bbox[1]],
+    [current_bbox[2], current_bbox[3]]],
+    {padding: 150}
+  );
+
+  map.on('dragend', function() {
+    current_bbox = [];
+  });
+
+  map.on('wheel', function() {
+    current_bbox = [];
+  });
+
+  custom();
+
+
+  // Functions
+
+  function switchLayer(layer) {
+    var layerId = layer.target.id;
+    map.setStyle('mapbox://styles/mapbox/' + layerId);
+  }
+
+  function addMarker(value) {
+
+    var htmlText = "<div style=\"max-height:490px;overflow:auto;\">";
+
+    for (var i = 0; i < value[1].length; i++) {
+      htmlText = htmlText.concat("<a href=\"").concat(user_info['url']).concat(value[1][i][0])
+      .concat("/\" target=\"_blank\"><img src=\"").concat(value[1][i][1]).concat("\"/></a> ");
+    }
+    htmlText = htmlText.concat("</div>");
+
+    if (value[1].length <= 35) {
+      new mapboxgl.Marker({color:'#C2185B',scale:0.7,draggable:false})
+      .setLngLat(value[0])
+      .setPopup(new mapboxgl.Popup({closeButton:false,maxWidth:'566px',anchor:'bottom'}).setHTML(htmlText))
+      .addTo(map);
+    } else {
+      new mapboxgl.Marker({color:'#C2185B',scale:0.7,draggable:false})
+      .setLngLat(value[0])
+      .setPopup(new mapboxgl.Popup({closeButton:false,maxWidth:'592px',anchor:'bottom'}).setHTML(htmlText))
+      .addTo(map);
     }
 
-    var initial_bbox = [];
-    var current_bbox = [];
-    var markers_added = {};
-
-    var west = 180;
-    var south = 90;
-    var east = -180;
-    var north = -90;
-
-    var stop = false;
-    var current_index = 0;
-    var current_n_markers = 0;
-
-    for (var country_code in locations_dict) {
-      markers_added[country_code] = 0;
+    if (value[0][0] < west) {
+      west = value[0][0];
     }
 
+    if (value[0][0] > east) {
+      east = value[0][0];
+    }
+
+    if (value[0][1] < south) {
+      south = value[0][1];
+    }
+
+    if (value[0][1] > north) {
+      north = value[0][1];
+    }
+
+    current_bbox = [west, south, east, north];
+
+  }
+
+  function addMarkersToMap(n_markers) {
+    var max_n_markers = current_n_markers + n_markers;
+    stop = false;
     while (!stop) {
       for (var country_code in locations_dict) {
+        current_index = markers_added[country_code];
         if (current_index < locations_dict[country_code].length) {
           addMarker(locations_dict[country_code][current_index]);
           markers_added[country_code]++;
+          if (customized) {
+            updateCountryMarkersCount(country_code);
+            updateTotalMarkersCount();
+          }
           current_n_markers++;
         }
       }
-      if (current_n_markers > max_init_n_markers || current_n_markers >= user_info['markers']) {
+      if (current_n_markers >= max_n_markers || current_n_markers >= user_info['markers']) {
         stop = true;
       }
-      current_index++;
     }
+  }
 
-    console.log(markers_added);
-
-    initial_bbox = current_bbox;
-
-    map.fitBounds([
-      [current_bbox[0], current_bbox[1]],
-      [current_bbox[2], current_bbox[3]]],
-      {padding: 150}
-    );
-
-    map.on('dragend', function() {
-      current_bbox = [];
-    });
-
-    map.on('wheel', function() {
-      current_bbox = [];
-    });
-
-    custom();
-
-
-    // Functions
-
-    function switchLayer(layer) {
-      var layerId = layer.target.id;
-      map.setStyle('mapbox://styles/mapbox/' + layerId);
+  function updateCountryMarkersCount(country_code) {
+    if (markers_added[country_code] < countries_dict[country_code][1]) {
+      document.getElementById(country_code.concat("_markers")).setAttribute("title", "Showing " + markers_added[country_code] + " markers, click here to show more");
+    } else {
+      document.getElementById(country_code.concat("_markers")).setAttribute("title", "Showing all markers");
     }
+  }
 
-    function addMarker(value) {
-
-      var htmlText = "<div style=\"max-height:490px;overflow:auto;\">";
-
-      for (var i = 0; i < value[1].length; i++) {
-        htmlText = htmlText.concat("<a href=\"").concat(user_info['url']).concat(value[1][i][0])
-        .concat("/\" target=\"_blank\"><img src=\"").concat(value[1][i][1]).concat("\"/></a> ");
-      }
-      htmlText = htmlText.concat("</div>");
-
-      if (value[1].length <= 35) {
-        new mapboxgl.Marker({color:'#C2185B',scale:0.7,draggable:false})
-        .setLngLat(value[0])
-        .setPopup(new mapboxgl.Popup({closeButton:false,maxWidth:'566px',anchor:'bottom'}).setHTML(htmlText))
-        .addTo(map);
-      } else {
-        new mapboxgl.Marker({color:'#C2185B',scale:0.7,draggable:false})
-        .setLngLat(value[0])
-        .setPopup(new mapboxgl.Popup({closeButton:false,maxWidth:'592px',anchor:'bottom'}).setHTML(htmlText))
-        .addTo(map);
-      }
-
-      if (value[0][0] < west) {
-        west = value[0][0];
-      }
-
-      if (value[0][0] > east) {
-        east = value[0][0];
-      }
-
-      if (value[0][1] < south) {
-        south = value[0][1];
-      }
-
-      if (value[0][1] > north) {
-        north = value[0][1];
-      }
-
-      current_bbox = [west, south, east, north];
-
+  function updateTotalMarkersCount() {
+    if (current_n_markers < user_info["markers"]) {
+      document.getElementById("n-markers").setAttribute("title", "Showing " + current_n_markers + " markers, click here to show more");
+    } else {
+      document.getElementById("n-markers").setAttribute("title", "Showing all markers");
     }
+  }
 
   </script>
 
@@ -173,11 +199,11 @@
   src="https://www.statcounter.com/counter/counter.js"
   async></script>
   <noscript><div class="statcounter"><a title="Web Analytics"
-  href="https://statcounter.com/" target="_blank"><img
-  class="statcounter"
-  src="https://c.statcounter.com/12369344/0/e25c0508/1/"
-  alt="Web Analytics"></a></div></noscript>
-  <!-- End of Statcounter Code -->
+    href="https://statcounter.com/" target="_blank"><img
+    class="statcounter"
+    src="https://c.statcounter.com/12369344/0/e25c0508/1/"
+    alt="Web Analytics"></a></div></noscript>
+    <!-- End of Statcounter Code -->
 
   </body>
   </html>

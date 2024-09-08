@@ -51,7 +51,7 @@ function custom() {
     document.getElementById("n-countries").innerText = countries.length.toString().concat(" country");
   }
 
-  document.getElementById("n-markers").addEventListener('click', function() { fitInitialBoundingBox(initial_bbox) });
+  document.getElementById("n-markers").addEventListener('click', function() { fitInitialBoundingBox(initial_bbox); addMarkersToMap(add_markers_increment); });
   document.getElementById("n-markers").innerText = user_info["markers"];
   document.getElementById("n-photos").innerText = user_info["photos"];
 
@@ -111,11 +111,7 @@ function custom() {
     i_places.innerText = countries[i][2];
     document.getElementById("places").appendChild(i_places);
 
-    if (markers_added[country_code] < countries_dict[country_code][1]) {
-      i_places.setAttribute("title", "Showing " + markers_added[country_code] + " markers, click here to show more");
-    } else {
-      i_places.setAttribute("title", "Showing all markers");
-    }
+    updateCountryMarkersCount(country_code);
 
     var i_places_icon = document.createElement("IMG");
     var icon_src = "../../icons/place.svg";
@@ -136,6 +132,10 @@ function custom() {
   }
 
   countries.forEach(addListener);
+
+  updateTotalMarkersCount();
+
+  customized = true;
 
 }
 
@@ -192,14 +192,20 @@ function addMarkersToCountry(country_code, start_index) {
 
     for (var i = start_index; i < end_index; i++) {
       addMarker(country_array[i]);
-      current_index = i;
       markers_added[country_code]++;
+      current_n_markers++;
     }
 
     if (markers_added[country_code] < countries_dict[country_code][1]) {
       document.getElementById(country_code.concat("_markers")).setAttribute("title", "Showing " + markers_added[country_code] + " markers, click here to show more");
     } else {
       document.getElementById(country_code.concat("_markers")).setAttribute("title", "Showing all markers");
+    }
+
+    if (current_n_markers < user_info["markers"]) {
+      document.getElementById("n-markers").setAttribute("title", "Showing " + current_n_markers + " markers, click here to show more");
+    } else {
+      document.getElementById("n-markers").setAttribute("title", "Showing all markers");
     }
 
 }
@@ -219,7 +225,7 @@ function addListener(country) {
 
   var country_url = "https://the-map-group.github.io/countries/".concat(country_code.toLowerCase());
   document.getElementById(country_code).addEventListener('click', function() { fitBoundingBox(country_bbox); });
-  document.getElementById(country_code.concat("_markers")).addEventListener('click', function() { fitBoundingBox(country_bbox); addMarkersToCountry(country_code, markers_added[country_code]-1); });
+  document.getElementById(country_code.concat("_markers")).addEventListener('click', function() { fitBoundingBox(country_bbox); addMarkersToCountry(country_code, markers_added[country_code]); });
 
 }
 
