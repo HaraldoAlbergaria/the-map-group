@@ -149,15 +149,15 @@ function fitBoundingBox(bbox) {
   var overlay_status = document.getElementById("overlay").style.width;
 
   if (overlay_status == '400px') {
-    padding_left = 450;
+    padding_left = 500;
   } else {
-    padding_left = 50;
+    padding_left = 100;
   }
 
   map.fitBounds([
     [bbox[0], bbox[1]],
     [bbox[2], bbox[3]]],
-    {padding: {top:50, bottom:50, left:padding_left, right:50}}
+    {padding: {top:100, bottom:100, left:padding_left, right:100}}
   );
 
 };
@@ -167,15 +167,15 @@ function fitInitialBoundingBox(initial_bbox) {
   var overlay_status = document.getElementById("overlay").style.width;
 
   if (overlay_status == '400px') {
-    padding_left = 450;
+    padding_left = 500;
   } else {
-    padding_left = 50;
+    padding_left = 100;
   }
 
   map.fitBounds([
     [initial_bbox[0], initial_bbox[1]],
     [initial_bbox[2], initial_bbox[3]]],
-    {padding: {top:50, bottom:50, left:padding_left, right:50}}
+    {padding: {top:100, bottom:100, left:padding_left, right:100}}
   );
 
   current_bbox = initial_bbox;
