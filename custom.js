@@ -58,14 +58,15 @@ function custom() {
 function loadMembers() {
 
   switch (members_list_state) {
-    case 0:
-      break;
     case 1:
+      // original sorting (joining date)
       for (i = 0; i < members_list_orig.length; i++) {
         members_list[i] = members_list_orig[i];
       }
+      document.getElementById("menu-members").setAttribute("title", "Click to sort alphabetically");
       break;
     case 2:
+      // sort by name
       members_list.sort(function(a,b) {
         var in_order = (b[2]<a[2]);
         if (in_order) {
@@ -74,8 +75,10 @@ function loadMembers() {
           return -1;
         }
       });
+      document.getElementById("menu-members").setAttribute("title", "Click to sort by number of markers");
       break;
     case 3:
+      // sort by n_markers
       members_list.sort(function(a,b) {
         var delta = (b[4]-a[4]);
         if (delta == 0) {
@@ -83,8 +86,10 @@ function loadMembers() {
         }
         return delta;
       });
+      document.getElementById("menu-members").setAttribute("title", "Click to sort by number of photos");
       break;
     case 4:
+      // sort by n_photos
       members_list.sort(function(a,b) {
         var delta = (b[5]-a[5]);
         if (delta == 0) {
@@ -92,6 +97,7 @@ function loadMembers() {
         }
         return delta;
       });
+      document.getElementById("menu-members").setAttribute("title", "Click to sort by joining date");
       break;
   }
 
@@ -179,7 +185,8 @@ function loadCountries() {
   }
 
   switch (countries_list_state) {
-    case 0:
+    case 1:
+      // sort by n_members
       countries.sort(function(a,b) {
         var delta = (b[3]-a[3]);
         if (delta == 0) {
@@ -187,17 +194,10 @@ function loadCountries() {
         }
         return delta;
       });
-      break;
-    case 1:
-      countries.sort(function(a,b) {
-        var delta = (b[4]-a[4]);
-        if (delta == 0) {
-          return (b[3]-a[3]);
-        }
-        return delta;
-      });
+      document.getElementById("menu-countries").setAttribute("title", "Click to sort alphabetically");
       break;
     case 2:
+      // sort alphabetically
       countries.sort(function(a,b) {
         var in_order = (b[1]<a[1]);
         if (in_order) {
@@ -206,15 +206,18 @@ function loadCountries() {
           return -1;
         }
       });
+      document.getElementById("menu-countries").setAttribute("title", "Click to sort by number of markers");
       break;
     case 3:
+      // sort by n_markers
       countries.sort(function(a,b) {
-        var delta = (b[3]-a[3]);
+        var delta = (b[4]-a[4]);
         if (delta == 0) {
-          return (b[4]-a[4]);
+          return (b[3]-a[3]);
         }
         return delta;
       });
+      document.getElementById("menu-countries").setAttribute("title", "Click to sort by number of members");
       break;
   }
 
@@ -273,9 +276,6 @@ function loadCountries() {
   document.getElementById("menu-members").setAttribute("class", "menu-inactive");
   document.getElementById("menu-countries").setAttribute("class", "menu-active");
 
-  // document.getElementById("menu-members").addEventListener('click', handleClickMembers);
-  // document.getElementById("menu-countries").removeEventListener('click', handleClickCountries);
-
 }
 
 function handleClickMembers() {
@@ -283,70 +283,60 @@ function handleClickMembers() {
     case 0:
       members_list_state = 1;
       countries_list_state = 0;
+      document.getElementById("menu-countries").removeAttribute("title");
       try {
          emptyList(countries.length);
       } catch {}
-      loadMembers();
       break;
     case 1:
-      // sort by name
+      // sort alphabetically
       members_list_state = 2;
       emptyList(members_list.length);
-      loadMembers();
       break;
     case 2:
       // sort by n_markers
       members_list_state = 3;
       emptyList(members_list.length);
-      loadMembers();
       break;
     case 3:
       // sort by n_photos
       members_list_state = 4;
       emptyList(members_list.length);
-      loadMembers();
       break;
     case 4:
+      // original sorting (joining date)
       members_list_state = 1;
-      // original_sorting
       emptyList(members_list.length);
-      loadMembers();
       break;
   }
-
-  console.log("Members state: " + members_list_state);
-  console.log("Countries state: " + countries_list_state);
+  loadMembers();
 }
 
 function handleClickCountries() {
   switch (countries_list_state) {
     case 0:
-      emptyList(members_list.length);
-      loadCountries();
       countries_list_state = 1;
       members_list_state = 0;
+      emptyList(members_list.length);
+      document.getElementById("menu-members").removeAttribute("title");
       break;
     case 1:
-      // sort by photos
-      emptyList(countries.length);
-      loadCountries();
+      // sort alphabetically
       countries_list_state = 2;
+      emptyList(countries.length);
       break;
     case 2:
-      // sort by name
-      emptyList(countries.length);
-      loadCountries();
+      // sort by n_markers
       countries_list_state = 3;
+      emptyList(countries.length);
       break;
     case 3:
       // sort by n_members
-      emptyList(countries.length);
-      loadCountries();
       countries_list_state = 1;
+      emptyList(countries.length);
       break;
   }
-  console.log("Members state: " + members_list_state);
-  console.log("Countries state: " + countries_list_state);
+  loadCountries();
 }
 
 function emptyList(list_size) {
