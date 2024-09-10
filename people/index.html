@@ -156,11 +156,11 @@
         if (current_index < locations_dict[country_code].length) {
           addMarker(locations_dict[country_code][current_index]);
           markers_added[country_code]++;
+          current_n_markers++;
           if (customized) {
             updateCountryMarkersCount(country_code);
             updateTotalMarkersCount();
           }
-          current_n_markers++;
         }
       }
       if (current_n_markers >= max_n_markers || current_n_markers >= user_info['markers']) {
