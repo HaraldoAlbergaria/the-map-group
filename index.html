@@ -63,6 +63,17 @@
   var members_markers = [];
   var non_members_markers = [];
 
+  var members_list_state = 1;
+  var countries_list_state = 0;
+
+  members_list.reverse();
+
+  var members_list_orig = [];
+
+  for (i = 0; i < members_list.length; i++) {
+    members_list_orig[i] = members_list[i];
+  }
+
   map.addControl(new mapboxgl.FullscreenControl({container: document.querySelector('body')}));
   map.addControl(new mapboxgl.NavigationControl());
 

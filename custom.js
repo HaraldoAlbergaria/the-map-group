@@ -48,8 +48,6 @@ function custom() {
   document.getElementById("n-markers").innerText = locations.length.toString();
   document.getElementById("n-photos").innerText = n_photos;
 
-  members_list.reverse();
-
   loadMembers();
 
 }
@@ -58,6 +56,44 @@ function custom() {
 // Functions
 
 function loadMembers() {
+
+  switch (members_list_state) {
+    case 0:
+      break;
+    case 1:
+      for (i = 0; i < members_list_orig.length; i++) {
+        members_list[i] = members_list_orig[i];
+      }
+      break;
+    case 2:
+      members_list.sort(function(a,b) {
+        var in_order = (b[2]<a[2]);
+        if (in_order) {
+          return 1;
+        } else {
+          return -1;
+        }
+      });
+      break;
+    case 3:
+      members_list.sort(function(a,b) {
+        var delta = (b[4]-a[4]);
+        if (delta == 0) {
+          return (b[5]-a[5]);
+        }
+        return delta;
+      });
+      break;
+    case 4:
+      members_list.sort(function(a,b) {
+        var delta = (b[5]-a[5]);
+        if (delta == 0) {
+          return (b[4]-a[4]);
+        }
+        return delta;
+      });
+      break;
+  }
 
   if (members_list.length > 1) {
     document.getElementById("n-members").innerText = members_list.length.toString().concat(" members");
@@ -118,8 +154,8 @@ function loadMembers() {
   document.getElementById("menu-members").setAttribute("class", "menu-active");
   document.getElementById("menu-countries").setAttribute("class", "menu-inactive");
 
-  document.getElementById("menu-members").removeEventListener('click', emptyLoadMembers);
-  document.getElementById("menu-countries").addEventListener('click', emptyLoadCountries);
+  document.getElementById("menu-members").addEventListener('click', handleClickMembers);
+  document.getElementById("menu-countries").addEventListener('click', handleClickCountries);
 
 }
 
@@ -128,12 +164,12 @@ function loadCountries() {
   countries = [];
 
   for (var code in members_dict) {
-    var n_markers = members_dict[code].length;
-    var n_photos = 0;
+    var n_members = members_dict[code].length;
+    var n_markers = 0;
     for (var k = 0; k < members_dict[code].length; k++) {
-      n_photos = n_photos + members_dict[code][k][4];
+      n_markers = n_markers + members_dict[code][k][4];
     }
-    countries.push([code, members_dict[code], n_markers, n_photos]);
+    countries.push([code, countries_bbox[code], members_dict[code], n_members, n_markers]);
   };
 
   if (countries.length > 1) {
@@ -142,20 +178,50 @@ function loadCountries() {
     document.getElementById("n-members").innerText = countries.length.toString().concat(" country");
   }
 
-  countries.sort(function(a,b) {
-    var delta = (b[2]-a[2]);
-    if (delta == 0) {
-      return (b[3]-a[3]);
-    }
-    return delta;
-  });
+  switch (countries_list_state) {
+    case 0:
+      countries.sort(function(a,b) {
+        var delta = (b[3]-a[3]);
+        if (delta == 0) {
+          return (b[4]-a[4]);
+        }
+        return delta;
+      });
+      break;
+    case 1:
+      countries.sort(function(a,b) {
+        var delta = (b[4]-a[4]);
+        if (delta == 0) {
+          return (b[3]-a[3]);
+        }
+        return delta;
+      });
+      break;
+    case 2:
+      countries.sort(function(a,b) {
+        var in_order = (b[1]<a[1]);
+        if (in_order) {
+          return 1;
+        } else {
+          return -1;
+        }
+      });
+      break;
+    case 3:
+      countries.sort(function(a,b) {
+        var delta = (b[3]-a[3]);
+        if (delta == 0) {
+          return (b[4]-a[4]);
+        }
+        return delta;
+      });
+      break;
+  }
 
   for (var i = 0; i < countries.length; i++) {
 
     var country_code = countries[i][0];
-    console.log(country_code);
     var country_name = countries_bbox[country_code][0];
-    console.log(country_name);
 
     var i_countries_avatar = document.createElement("IMG");
     var icon_src = getIconSrc(country_name);
@@ -180,7 +246,7 @@ function loadCountries() {
 
     var i_places = document.createElement("P");
     i_places.setAttribute("class", "item");
-    i_places.innerText = countries[i][2];
+    i_places.innerText = countries[i][3];
     document.getElementById("places").appendChild(i_places);
 
     var i_places_icon = document.createElement("IMG");
@@ -191,7 +257,7 @@ function loadCountries() {
 
     var i_photos = document.createElement("P");
     i_photos.setAttribute("class", "item");
-    i_photos.innerText = countries[i][3];
+    i_photos.innerText = countries[i][4];
     document.getElementById("photos").appendChild(i_photos);
 
     var i_photos_icon = document.createElement("IMG");
@@ -207,19 +273,80 @@ function loadCountries() {
   document.getElementById("menu-members").setAttribute("class", "menu-inactive");
   document.getElementById("menu-countries").setAttribute("class", "menu-active");
 
-  document.getElementById("menu-members").addEventListener('click', emptyLoadMembers);
-  document.getElementById("menu-countries").removeEventListener('click', emptyLoadCountries);
+  // document.getElementById("menu-members").addEventListener('click', handleClickMembers);
+  // document.getElementById("menu-countries").removeEventListener('click', handleClickCountries);
 
 }
 
-function emptyLoadMembers() {
-  emptyList(countries.length);
-  loadMembers()
+function handleClickMembers() {
+  switch (members_list_state) {
+    case 0:
+      members_list_state = 1;
+      countries_list_state = 0;
+      try {
+         emptyList(countries.length);
+      } catch {}
+      loadMembers();
+      break;
+    case 1:
+      // sort by name
+      members_list_state = 2;
+      emptyList(members_list.length);
+      loadMembers();
+      break;
+    case 2:
+      // sort by n_markers
+      members_list_state = 3;
+      emptyList(members_list.length);
+      loadMembers();
+      break;
+    case 3:
+      // sort by n_photos
+      members_list_state = 4;
+      emptyList(members_list.length);
+      loadMembers();
+      break;
+    case 4:
+      members_list_state = 1;
+      // original_sorting
+      emptyList(members_list.length);
+      loadMembers();
+      break;
+  }
+
+  console.log("Members state: " + members_list_state);
+  console.log("Countries state: " + countries_list_state);
 }
 
-function emptyLoadCountries() {
-  emptyList(members_list.length);
-  loadCountries();
+function handleClickCountries() {
+  switch (countries_list_state) {
+    case 0:
+      emptyList(members_list.length);
+      loadCountries();
+      countries_list_state = 1;
+      members_list_state = 0;
+      break;
+    case 1:
+      // sort by photos
+      emptyList(countries.length);
+      loadCountries();
+      countries_list_state = 2;
+      break;
+    case 2:
+      // sort by name
+      emptyList(countries.length);
+      loadCountries();
+      countries_list_state = 3;
+      break;
+    case 3:
+      // sort by n_members
+      emptyList(countries.length);
+      loadCountries();
+      countries_list_state = 1;
+      break;
+  }
+  console.log("Members state: " + members_list_state);
+  console.log("Countries state: " + countries_list_state);
 }
 
 function emptyList(list_size) {
