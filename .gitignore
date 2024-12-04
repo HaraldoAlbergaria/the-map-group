@@ -25,7 +25,6 @@ run-update-maps.sh
 locations.py
 members.py
 mapbox_token.js
-countries_bbox.js
 CNAME
 flags
 res

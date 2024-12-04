@@ -282,7 +282,8 @@ countries_dict = {
   'MF': 'Saint-Martin',
   'YT': 'Mayotte',
   'MS': 'Montserrat',
-  'NR': 'Nauru'
+  'NR': 'Nauru',
+  'AW': 'Aruba'
 }
 
 latitude_dict = {
@@ -298,7 +299,7 @@ latitude_dict = {
   9: {'TH', 'LK', 'IN', 'TT', 'FM', 'SD', 'SO', 'SS', 'CF', 'BF', 'GY', 'MH', 'CI', 'VE', 'TG', 'PA', 'MM', 'PH', 'NG', 'CO', 'BJ', 'GH', 'KH', 'CR', 'LR', 'GN', 'VN', 'ET', 'SL', 'CM', 'TD'},
   10: {'TH', 'LK', 'IN', 'TT', 'FM', 'SD', 'SO', 'SS', 'CF', 'BF', 'MH', 'GW', 'CI', 'VE', 'TG', 'PA', 'ML', 'MM', 'PH', 'NG', 'CO', 'BJ', 'GH', 'KH', 'CR', 'DJ', 'GN', 'NI', 'VN', 'ET', 'SL', 'CM', 'TD'},
   11: {'TH', 'LK', 'IN', 'TT', 'FM', 'SD', 'SO', 'SS', 'CF', 'BF', 'MH', 'GW', 'CI', 'VE', 'TG', 'ML', 'MM', 'PH', 'NG', 'CO', 'BJ', 'GH', 'KH', 'CR', 'DJ', 'GN', 'NI', 'YE', 'VN', 'GD', 'ET', 'CM', 'TD', 'NL'},
-  12: {'TH', 'IN', 'TT', 'SD', 'SO', 'SS', 'BF', 'VC', 'GW', 'MH', 'VE', 'ML', 'SN', 'MM', 'PH', 'NG', 'CO', 'BJ', 'KH', 'GH', 'DJ', 'GN', 'NI', 'YE', 'NE', 'VN', 'ER', 'GD', 'ET', 'CM', 'TD', 'NL', 'BB'},
+  12: {'AW', 'TH', 'IN', 'TT', 'SD', 'SO', 'SS', 'BF', 'VC', 'GW', 'MH', 'VE', 'ML', 'SN', 'MM', 'PH', 'NG', 'CO', 'BJ', 'KH', 'GH', 'DJ', 'GN', 'NI', 'YE', 'NE', 'VN', 'ER', 'GD', 'ET', 'CM', 'TD', 'NL', 'BB'},
   13: {'TH', 'GT', 'IN', 'SV', 'SD', 'SO', 'SS', 'BF', 'VC', 'GW', 'VE', 'LC', 'ML', 'LA', 'SN', 'MM', 'NG', 'PH', 'CO', 'BJ', 'KH', 'DJ', 'HN', 'GN', 'NI', 'NE', 'YE', 'VN', 'ER', 'GD', 'ET', 'CM', 'TD', 'NL', 'BB', 'GM'},
   14: {'TH', 'GT', 'FR', 'IN', 'SV', 'SD', 'BF', 'VC', 'US', 'LC', 'ML', 'LA', 'SN', 'MM', 'PH', 'NG', 'CO', 'KH', 'HN', 'NI', 'YE', 'NE', 'VN', 'ER', 'MR', 'ET', 'TD', 'CV', 'BB', 'DM', 'GM'},
   15: {'TH', 'GT', 'FR', 'IN', 'SV', 'SD', 'BF', 'LC', 'ML', 'LA', 'SN', 'MM', 'PH', 'CO', 'KH', 'HN', 'NI', 'NE', 'YE', 'VN', 'ER', 'BZ', 'MR', 'ET', 'MX', 'CN', 'TD', 'CV', 'DM'},
@@ -752,8 +753,8 @@ longitude_dict = {
   -73: {'AQ', 'BS', 'VE', 'US', 'TC', 'CA', 'CL', 'GL', 'DO', 'BR', 'HT', 'PE', 'AR', 'CO'},
   -72: {'AQ', 'BS', 'VE', 'US', 'TC', 'CA', 'CL', 'DO', 'GL', 'BR', 'PE', 'HT', 'AR', 'CO'},
   -71: {'AQ', 'VE', 'US', 'TC', 'CA', 'CL', 'DO', 'GL', 'BR', 'PE', 'HT', 'AR', 'CO'},
-  -70: {'AQ', 'VE', 'US', 'CA', 'CL', 'DO', 'GL', 'BR', 'BO', 'PE', 'AR', 'NL', 'CO'},
-  -69: {'AQ', 'VE', 'US', 'CA', 'CL', 'DO', 'GL', 'BR', 'BO', 'PE', 'AR', 'NL', 'CO'},
+  -70: {'AW', 'AQ', 'VE', 'US', 'CA', 'CL', 'DO', 'GL', 'BR', 'BO', 'PE', 'AR', 'NL', 'CO'},
+  -69: {'AW', 'AQ', 'VE', 'US', 'CA', 'CL', 'DO', 'GL', 'BR', 'BO', 'PE', 'AR', 'NL', 'CO'},
   -68: {'AQ', 'VE', 'US', 'CA', 'CL', 'GL', 'DO', 'BR', 'BO', 'PE', 'AR', 'NL', 'CO'},
   -67: {'AQ', 'VE', 'US', 'CA', 'CL', 'GL', 'BR', 'BO', 'AR', 'CO', 'PR'},
   -66: {'AQ', 'VE', 'US', 'CA', 'CL', 'GL', 'BR', 'BO', 'AR', 'PR'},
