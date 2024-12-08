@@ -4,18 +4,35 @@ from geopy.geocoders import Nominatim
 from geopy.geocoders import GeoNames
 from geopy.geocoders import MapBox
 
+from countries_bbox import countries_bbox
+
 import api_credentials
 
 try:
-    geolocator1 = MapBox(api_key=api_credentials.mapbox_token)
+    geolocator1 = Nominatim(user_agent=api_credentials.nominatim_agent)
     geolocator2 = GeoNames(username=api_credentials.geonames_user)
-    geolocator3 = Nominatim(user_agent=api_credentials.nominatim_agent)
 except:
     print("ERROR: FATAL: Unable to get geolocators")
     sys.exit()
 
 
+def isTerritory(lat, long, code):
+    if long < countries_bbox[code][1][0] or long > countries_bbox[code][1][2]:
+        return True
+    if lat < countries_bbox[code][1][1] or lat > countries_bbox[code][1][3]:
+        return True
+    return False
+
+
 def getCountryInfo(lat, long):
+
+    use_mapbox = False
+    is_territory = False
+
+    repo_dir = "/home/pi/github/the-map-group.github.io/log"
+    log_file = open("{}/countries_info.log".format(repo_dir), "a")
+    rep_file = open("{}/countries_info.rep".format(repo_dir), "a")
+    err_file = open("{}/countries_info.err".format(repo_dir), "a")
 
     latitude = int(lat)
     longitude = int(long)
@@ -25,30 +42,21 @@ def getCountryInfo(lat, long):
 
     if len(codes) == 1:
         code = codes.pop()
-        name = countries_dict[code]
+        name = countries_bbox[code][0]
     else:
         latlong = (lat, long)
 
-        # get info from MapBox
+        # get info from Nominatim
         if True:
             try:
-                location = geolocator1.reverse(latlong, exactly_one=True)
-                location_info = location.raw['context']
-                len_info = len(location_info)
-                if len_info > 4:
-                    info_index = 3
-                else:
-                    info_index = len_info - 1
-                code = location_info[info_index]['short_code'].upper()
-                name = location_info[info_index]['text']
-                if len(code) > 2:
-                    code = ''
-                    name = ''
+                location = geolocator1.reverse(latlong, language='en-US', zoom=18, exactly_one=True)
+                code = location.raw['address']['country_code'].upper()
+                name = location.raw['address']['country']
             except:
                 code = ''
                 name = ''
 
-        # get info from GeoNames if not found by MapBox
+        # get info from GeoNames if not found by Nominatim
         if code == '':
             try:
                 location = geolocator2.reverse(latlong, lang='en-US', exactly_one=True)
@@ -58,237 +66,70 @@ def getCountryInfo(lat, long):
                 code = ''
                 name = ''
 
-        # get info from Nominatim if not found by MapBox and GeoNames
-        if code == '':
+        # assign correct code and name to some countries using the dictionaries
+        try:
+            if name != countries_bbox[code][0]:
+                rep_file.write("\'{}: {}\' = \'{}\' ".format(code, name, countries_bbox[code][0]))
+                code = codes_dict[name]
+                name = countries_bbox[code][0]
+                rep_file.write("=> \'{}: {}'\n".format(code, name))
+        except:
+            if code != '':
+                log_file.write("'{}: {}' not found at dictionaries\n".format(code, name))
+                code = ''
+                code = ''
+            else:
+                err_file.write("{} not found at any of the geocoders\n".format(latlong))
+
+        # check if location is in a territory of another country
+        try:
+            is_territory = isTerritory(lat, long, code)
+            if is_territory and name == countries_bbox[code][0]:
+                log_file.write("{} is in a territory of \'{}\'\n".format(latlong, name))
+        except:
+            pass
+
+        # get the correct info from MapBox if not found by Nominatim, GeoNames and on dictionaries
+        if use_mapbox and is_territory:
             try:
-                location = geolocator3.reverse(latlong, language='en-US', exactly_one=True)
-                code = location.raw['address']['country_code'].upper()
-                name = location.raw['address']['country']
+                geolocator3 = MapBox(api_key=api_credentials.mapbox_token)
+                location = geolocator3.reverse(latlong, exactly_one=True)
+                location_info = location.raw['context']
+                len_info = len(location_info)
+                if len_info > 4:
+                    info_index = 3
+                else:
+                    info_index = len_info - 1
+                code = location_info[info_index]['short_code'].upper()
+                name = location_info[info_index]['text']
+                if len(code) > 2:
+                    code = code[:2]
+                log_file.write("\'{}: {}\' found by MapBox geocoder\n".format(code, name))
             except:
-                pass
+                code = ''
+                name = ''
+            if code == '':
+                err_file.write("{} not found at MapBox geocoder\n".format(latlong))
+
+        log_file.close()
+        rep_file.close()
+        err_file.close()
 
     return [code, name]
 
 
-countries_dict = {
-  'IN': 'India',
-  'TM': 'Turkmenistan',
-  'FJ': 'Fiji',
-  'MW': 'Malawi',
-  'MA': 'Morocco',
-  'VA': 'Vatican City',
-  'SS': 'South Sudan',
-  'BF': 'Burkina Faso',
-  'GY': 'Guyana',
-  'OM': 'Oman',
-  'EH': 'Western Sahara',
-  'BN': 'Brunei Darussalam',
-  'GB': 'United Kingdom',
-  'CI': 'Côte d\'Ivoire',
-  'LB': 'Lebanon',
-  'JM': 'Jamaica',
-  'GA': 'Gabon',
-  'PA': 'Panama',
-  'DK': 'Denmark',
-  'IQ': 'Iraq',
-  'BJ': 'Benin',
-  'MZ': 'Mozambique',
-  'LU': 'Luxembourg',
-  'FK': 'Falkland Islands',
-  'GQ': 'Equatorial Guinea',
-  'CG': 'Congo',
-  'RU': 'Russia',
-  'ER': 'Eritrea',
-  'CD': 'Democratic Republic of the Congo',
-  'LV': 'Latvia',
-  'AO': 'Angola',
-  'RW': 'Rwanda',
-  'MT': 'Malta',
-  'SY': 'Syria',
-  'AU': 'Australia',
-  'AM': 'Armenia',
-  'EC': 'Ecuador',
-  'TD': 'Chad',
-  'AR': 'Argentina',
-  'AZ': 'Azerbaijan',
-  'MR': 'Mauritania',
-  'MN': 'Mongolia',
-  'FR': 'France',
-  'TZ': 'Tanzania',
-  'BI': 'Burundi',
-  'CH': 'Switzerland',
-  'ZA': 'South Africa',
-  'BO': 'Bolivia',
-  'SO': 'Somalia',
-  'CF': 'Central African Republic',
-  'TR': 'Turkey',
-  'GW': 'Guinea-Bissau',
-  'PK': 'Pakistan',
-  'WS': 'Samoa',
-  'CA': 'Canada',
-  'EE': 'Estonia',
-  'ZW': 'Zimbabwe',
-  'KP': 'North Korea',
-  'PT': 'Portugal',
-  'TJ': 'Tajikistan',
-  'LA': 'Laos',
-  'BD': 'Bangladesh',
-  'GE': 'Georgia',
-  'IE': 'Ireland',
-  'KI': 'Kiribati',
-  'GH': 'Ghana',
-  'JE': 'Jersey',
-  'KW': 'Kuwait',
-  'SB': 'Solomon Islands',
-  'FM': 'Micronesia',
-  'PS': 'Palestinian Territory',
-  'GN': 'Guinea',
-  'PE': 'Peru',
-  'NO': 'Norway',
-  'JO': 'Jordan',
-  'MG': 'Madagascar',
-  'VE': 'Venezuela',
-  'AG': 'Antigua and Barbuda',
-  'TO': 'Tonga',
-  'IS': 'Iceland',
-  'TC': 'Turks and Caicos Islands',
-  'UZ': 'Uzbekistan',
-  'XK': 'Kosovo',
-  'IL': 'Israel',
-  'ET': 'Ethiopia',
-  'IT': 'Italy',
-  'UG': 'Uganda',
-  'HT': 'Haiti',
-  'LK': 'Sri Lanka',
-  'ST': 'São Tomé and Príncipe',
-  'TH': 'Thailand',
-  'SV': 'El Salvador',
-  'LS': 'Lesotho',
-  'RS': 'Serbia',
-  'SZ': 'Swaziland',
-  'TT': 'Trinidad and Tobago',
-  'BT': 'Bhutan',
-  'ME': 'Montenegro',
-  'GR': 'Greece',
-  'SD': 'Sudan',
-  'CY': 'Cyprus',
-  'ZM': 'Zambia',
-  'SL': 'Sierra Leone',
-  'UY': 'Uruguay',
-  'HR': 'Croatia',
-  'VC': 'Saint Vincent and the Grenadines',
-  'QA': 'Qatar',
-  'BE': 'Belgium',
-  'SE': 'Sweden',
-  'US': 'United States of America',
-  'TG': 'Togo',
-  'SI': 'Slovenia',
-  'FI': 'Finland',
-  'SK': 'Slovakia',
-  'PY': 'Paraguay',
-  'ML': 'Mali',
-  'SA': 'Saudi Arabia',
-  'GS': 'South Georgia and South Sandwich Islands',
-  'SN': 'Senegal',
-  'BY': 'Belarus',
-  'KR': 'South Korea',
-  'NP': 'Nepal',
-  'NU': 'Niue',
-  'IR': 'Iran',
-  'CR': 'Costa Rica',
-  'GL': 'Greenland',
-  'DJ': 'Djibouti',
-  'LY': 'Libya',
-  'NI': 'Nicaragua',
-  'AF': 'Afghanistan',
-  'NE': 'Niger',
-  'KE': 'Kenya',
-  'NZ': 'New Zealand',
-  'HU': 'Hungary',
-  'MV': 'Maldives',
-  'BS': 'The Bahamas',
-  'GD': 'Grenada',
-  'BZ': 'Belize',
-  'BW': 'Botswana',
-  'LT': 'Lithuania',
-  'JP': 'Japan',
-  'IM': 'Isle of Man',
-  'NG': 'Nigeria',
-  'MX': 'Mexico',
-  'CN': 'China',
-  'CO': 'Colombia',
-  'EG': 'Egypt',
-  'NL': 'Netherlands',
-  'DZ': 'Algeria',
-  'GT': 'Guatemala',
-  'SC': 'Seychelles',
-  'VU': 'Vanuatu',
-  'KG': 'Kyrgyzstan',
-  'AL': 'Albania',
-  'CU': 'Cuba',
-  'UA': 'Ukraine',
-  'MH': 'Marshall Islands',
-  'SR': 'Suriname',
-  'PG': 'Papua New Guinea',
-  'CZ': 'Czech Republic',
-  'LC': 'Saint Lucia',
-  'AT': 'Austria',
-  'BR': 'Brazil',
-  'MM': 'Myanmar',
-  'PH': 'Philippines',
-  'KZ': 'Kazakhstan',
-  'MY': 'Malaysia',
-  'DE': 'Germany',
-  'CK': 'Cook Islands',
-  'CL': 'Chile',
-  'DO': 'Dominican Republic',
-  'BA': 'Bosnia and Herzegovina',
-  'ES': 'Spain',
-  'LR': 'Liberia',
-  'YE': 'Yemen',
-  'KH': 'Cambodia',
-  'VN': 'Vietnam',
-  'NA': 'Namibia',
-  'ID': 'Indonesia',
-  'MK': 'Macedonia',
-  'FO': 'Faroe Islands',
-  'TK': 'Tokelau',
-  'TN': 'Tunisia',
-  'PL': 'Poland',
-  'BG': 'Bulgaria',
-  'MD': 'Moldova',
-  'HN': 'Honduras',
-  'TW': 'Taiwan',
-  'AE': 'United Arab Emirates',
-  'CM': 'Cameroon',
-  'CV': 'Cape Verde',
-  'TL': 'East Timor',
-  'RO': 'Romania',
-  'AD': 'Andorra',
-  'AQ': 'Antarctica',
-  'BB': 'Barbados',
-  'DM': 'Dominica',
-  'GG': 'Guernsey',
-  'GI': 'Gibraltar',
-  'GM': 'Gambia',
-  'KM': 'Comoros',
-  'KN': 'Saint Kitts and Nevis',
-  'LI': 'Liechtenstein',
-  'MC': 'Monaco',
-  'MU': 'Mauritius',
-  'NC': 'New Caledonia',
-  'PR': 'Puerto Rico',
-  'PS': 'West Bank',
-  'SG': 'Singapore',
-  'TF': 'Fr. S. and Antarctic Lands',
-  'SM': 'San Marino',
-  'RE': 'Reunion',
-  'VG': 'British Virgin Islands',
-  'MF': 'Saint-Martin',
-  'YT': 'Mayotte',
-  'MS': 'Montserrat',
-  'NR': 'Nauru',
-  'AW': 'Aruba'
+# dictionaries
+
+codes_dict = {
+  'Aruba': 'AW',
+  'Congo-Brazzaville': 'CG',
+  'Curacao': 'CW',
+  'North Macedonia': 'MK',
+  'Bonaire, Sint Eustatius, and Saba': 'BQ',
+  'Saint Helena, Ascension and Tristan da Cunha': 'SH',
+  'American Samoa': 'AS',
+  'Saint Lucia': 'LC',
+  'Saint Vincent and the Grenadines': 'VC'
 }
 
 latitude_dict = {
@@ -366,13 +207,13 @@ latitude_dict = {
   71: {'US', 'CA', 'FI', 'GL', 'NO', 'RU'},
   72: {'NO', 'CA', 'GL', 'RU'},
   73: {'CA', 'GL', 'RU'},
-  74: {'CA', 'GL', 'RU'},
-  75: {'CA', 'GL', 'RU'},
-  76: {'NO', 'CA', 'GL', 'RU'},
-  77: {'NO', 'CA', 'GL', 'RU'},
-  78: {'NO', 'CA', 'GL', 'RU'},
-  79: {'NO', 'CA', 'GL', 'RU'},
-  80: {'NO', 'CA', 'GL', 'RU'},
+  74: {'SJ', 'CA', 'GL', 'RU'},
+  75: {'SJ', 'CA', 'GL', 'RU'},
+  76: {'SJ', 'NO', 'CA', 'GL', 'RU'},
+  77: {'SJ', 'NO', 'CA', 'GL', 'RU'},
+  78: {'SJ', 'NO', 'CA', 'GL', 'RU'},
+  79: {'SJ', 'NO', 'CA', 'GL', 'RU'},
+  80: {'SJ', 'NO', 'CA', 'GL', 'RU'},
   81: {'NO', 'CA', 'GL', 'RU'},
   82: {'NO', 'CA', 'GL', 'RU'},
   83: {'CA', 'GL'},
@@ -479,31 +320,31 @@ longitude_dict = {
   7: {'AQ', 'DZ', 'FR', 'DE', 'ST', 'LU', 'TN', 'CH', 'IT', 'NE', 'DK', 'NO', 'NG', 'NL', 'MC'},
   8: {'AQ', 'DZ', 'FR', 'DE', 'ST', 'TN', 'CH', 'GA', 'IT', 'NE', 'DK', 'NO', 'CM', 'NG', 'NL', 'MC'},
   9: {'AQ', 'DZ', 'FR', 'DE', 'TN', 'AT', 'CH', 'GA', 'IT', 'NE', 'LY', 'DK', 'GQ', 'NO', 'CM', 'NG', 'LI'},
-  10: {'AQ', 'DZ', 'SE', 'FR', 'DE', 'TN', 'AT', 'CH', 'GA', 'IT', 'NE', 'LY', 'DK', 'GQ', 'NO', 'CM', 'NG', 'LI'},
-  11: {'AQ', 'DZ', 'SE', 'NA', 'DE', 'CG', 'VA', 'AO', 'TN', 'AT', 'GA', 'IT', 'NE', 'LY', 'DK', 'GQ', 'NO', 'CM', 'NG'},
-  12: {'AQ', 'NA', 'VA', 'SE', 'CG', 'DE', 'CZ', 'CD', 'DZ', 'AO', 'TN', 'AT', 'GA', 'IT', 'NE', 'LY', 'DK', 'GQ', 'NO', 'CM', 'NG', 'SM'},
-  13: {'AQ', 'NA', 'SE', 'CG', 'DE', 'CZ', 'VA', 'CD', 'SI', 'AO', 'AT', 'MT', 'GA', 'IT', 'NE', 'LY', 'DK', 'NO', 'CM', 'TD', 'HR', 'NG', 'SM'},
-  14: {'AQ', 'CF', 'HR', 'SE', 'SI', 'AT', 'DK', 'NG', 'DE', 'CZ', 'LY', 'GA', 'NE', 'NO', 'NA', 'CG', 'CD', 'AO', 'MT', 'PL', 'IT', 'CM', 'TD'},
-  15: {'AQ', 'CF', 'HR', 'SE', 'SI', 'AT', 'DK', 'NG', 'DE', 'CZ', 'BA', 'LY', 'GA', 'NE', 'NO', 'NA', 'CG', 'CD', 'AO', 'MT', 'PL', 'IT', 'CM', 'TD'},
-  16: {'AQ', 'NA', 'SE', 'CG', 'CZ', 'CD', 'SI', 'AO', 'AT', 'ZA', 'BA', 'PL', 'IT', 'HU', 'LY', 'NE', 'DK', 'CF', 'NO', 'CM', 'TD', 'HR'},
-  17: {'AQ', 'HR', 'NA', 'SE', 'CG', 'CZ', 'CD', 'AO', 'AT', 'ZA', 'BA', 'PL', 'IT', 'LY', 'SK', 'CF', 'NO', 'CM', 'TD', 'HU'},
-  18: {'AQ', 'HR', 'NA', 'SE', 'CG', 'CZ', 'ME', 'CD', 'AO', 'AT', 'ZA', 'BA', 'PL', 'IT', 'LY', 'SK', 'CF', 'NO', 'TD', 'HU'},
-  19: {'AQ', 'ME', 'RS', 'CF', 'HR', 'SE', 'AL', 'FI', 'SK', 'CZ', 'BA', 'LY', 'NO', 'HU', 'NA', 'CG', 'BW', 'CD', 'AO', 'ZA', 'PL', 'IT', 'TD'},
-  20: {'AQ', 'ME', 'RS', 'GR', 'CF', 'HR', 'SE', 'AL', 'FI', 'SK', 'LV', 'MK', 'BA', 'LY', 'NO', 'HU', 'RU', 'NA', 'BW', 'CD', 'AO', 'LT', 'XK', 'ZA', 'PL', 'TD', 'RO'},
-  21: {'AQ', 'ME', 'RS', 'GR', 'SD', 'CF', 'SE', 'AL', 'FI', 'EE', 'SK', 'LV', 'MK', 'LY', 'NO', 'HU', 'RU', 'NA', 'BW', 'CD', 'AO', 'LT', 'XK', 'ZA', 'PL', 'TD', 'RO'},
-  22: {'AQ', 'RS', 'GR', 'SD', 'CF', 'ZM', 'UA', 'SE', 'FI', 'EE', 'SK', 'LV', 'MK', 'LY', 'NO', 'HU', 'RU', 'NA', 'BW', 'CD', 'AO', 'LT', 'XK', 'ZA', 'PL', 'BG', 'TD', 'RO'},
-  23: {'AQ', 'RS', 'GR', 'SD', 'CF', 'ZM', 'UA', 'SE', 'FI', 'EE', 'SK', 'LV', 'BY', 'MK', 'LY', 'NO', 'HU', 'NA', 'BW', 'CD', 'LT', 'AO', 'ZA', 'PL', 'BG', 'TD', 'RO'},
-  24: {'AQ', 'GR', 'SD', 'SS', 'CF', 'ZM', 'UA', 'SE', 'FI', 'EE', 'LV', 'BY', 'LY', 'NO', 'NA', 'BW', 'CD', 'LT', 'AO', 'ZA', 'PL', 'BG', 'TD', 'EG', 'RO'},
-  25: {'AQ', 'GR', 'SD', 'SS', 'CF', 'ZM', 'TR', 'UA', 'SE', 'FI', 'EE', 'ZW', 'LV', 'BY', 'LY', 'NO', 'NA', 'BW', 'CD', 'LT', 'AO', 'ZA', 'BG', 'EG', 'RO'},
-  26: {'AQ', 'SS', 'UA', 'BW', 'CD', 'LT', 'FI', 'ZA', 'EE', 'ZW', 'BG', 'NO', 'LY', 'GR', 'SD', 'ZM', 'CF', 'TR', 'LV', 'EG', 'RO', 'BY'},
-  27: {'AQ', 'LS', 'GR', 'SD', 'SS', 'ZM', 'CF', 'UA', 'TR', 'FI', 'EE', 'ZW', 'LV', 'BY', 'NO', 'RU', 'BW', 'CD', 'LT', 'ZA', 'BG', 'MD', 'EG', 'RO'},
-  28: {'AQ', 'UA', 'BW', 'CD', 'LS', 'FI', 'ZA', 'ZM', 'EE', 'ZW', 'BG', 'MD', 'GR', 'SD', 'RO', 'SS', 'NO', 'TR', 'LV', 'EG', 'RU', 'BY'},
-  29: {'AQ', 'TZ', 'BI', 'LS', 'GR', 'SD', 'ZM', 'SS', 'UA', 'TR', 'FI', 'ZW', 'BY', 'NO', 'RU', 'BW', 'CD', 'RW', 'ZA', 'BG', 'MD', 'UG', 'EG', 'RO'},
-  30: {'AQ', 'TZ', 'BI', 'LS', 'SZ', 'SD', 'ZM', 'SS', 'UA', 'TR', 'FI', 'ZW', 'BY', 'MZ', 'NO', 'RU', 'RW', 'CD', 'BW', 'ZA', 'MD', 'UG', 'EG', 'RO'},
-  31: {'AQ', 'UA', 'TZ', 'MZ', 'BI', 'CD', 'RW', 'FI', 'ZA', 'ZM', 'SZ', 'ZW', 'SD', 'RO', 'SS', 'NO', 'TR', 'UG', 'EG', 'RU', 'BY'},
-  32: {'AQ', 'TZ', 'MZ', 'BY', 'CD', 'ZM', 'ZA', 'FI', 'SZ', 'ZW', 'MW', 'SD', 'CY', 'SS', 'NO', 'TR', 'UG', 'EG', 'RU', 'UA'},
-  33: {'AQ', 'TZ', 'MZ', 'ZM', 'ZA', 'ET', 'ZW', 'MW', 'SZ', 'SD', 'CY', 'SS', 'NO', 'KE', 'TR', 'UG', 'EG', 'RU', 'UA'},
-  34: {'AQ', 'TZ', 'MZ', 'ZM', 'IL', 'ZA', 'ET', 'MW', 'ZW', 'PS', 'SA', 'SD', 'CY', 'SS', 'NO', 'KE', 'TR', 'UG', 'EG', 'RU', 'UA', 'PS'},
+  10: {'SJ', 'AQ', 'DZ', 'SE', 'FR', 'DE', 'TN', 'AT', 'CH', 'GA', 'IT', 'NE', 'LY', 'DK', 'GQ', 'NO', 'CM', 'NG', 'LI'},
+  11: {'SJ', 'AQ', 'DZ', 'SE', 'NA', 'DE', 'CG', 'VA', 'AO', 'TN', 'AT', 'GA', 'IT', 'NE', 'LY', 'DK', 'GQ', 'NO', 'CM', 'NG'},
+  12: {'SJ', 'AQ', 'NA', 'VA', 'SE', 'CG', 'DE', 'CZ', 'CD', 'DZ', 'AO', 'TN', 'AT', 'GA', 'IT', 'NE', 'LY', 'DK', 'GQ', 'NO', 'CM', 'NG', 'SM'},
+  13: {'SJ', 'AQ', 'NA', 'SE', 'CG', 'DE', 'CZ', 'VA', 'CD', 'SI', 'AO', 'AT', 'MT', 'GA', 'IT', 'NE', 'LY', 'DK', 'NO', 'CM', 'TD', 'HR', 'NG', 'SM'},
+  14: {'SJ', 'AQ', 'CF', 'HR', 'SE', 'SI', 'AT', 'DK', 'NG', 'DE', 'CZ', 'LY', 'GA', 'NE', 'NO', 'NA', 'CG', 'CD', 'AO', 'MT', 'PL', 'IT', 'CM', 'TD'},
+  15: {'SJ', 'AQ', 'CF', 'HR', 'SE', 'SI', 'AT', 'DK', 'NG', 'DE', 'CZ', 'BA', 'LY', 'GA', 'NE', 'NO', 'NA', 'CG', 'CD', 'AO', 'MT', 'PL', 'IT', 'CM', 'TD'},
+  16: {'SJ', 'AQ', 'NA', 'SE', 'CG', 'CZ', 'CD', 'SI', 'AO', 'AT', 'ZA', 'BA', 'PL', 'IT', 'HU', 'LY', 'NE', 'DK', 'CF', 'NO', 'CM', 'TD', 'HR'},
+  17: {'SJ', 'AQ', 'HR', 'NA', 'SE', 'CG', 'CZ', 'CD', 'AO', 'AT', 'ZA', 'BA', 'PL', 'IT', 'LY', 'SK', 'CF', 'NO', 'CM', 'TD', 'HU'},
+  18: {'SJ', 'AQ', 'HR', 'NA', 'SE', 'CG', 'CZ', 'ME', 'CD', 'AO', 'AT', 'ZA', 'BA', 'PL', 'IT', 'LY', 'SK', 'CF', 'NO', 'TD', 'HU'},
+  19: {'SJ', 'AQ', 'ME', 'RS', 'CF', 'HR', 'SE', 'AL', 'FI', 'SK', 'CZ', 'BA', 'LY', 'NO', 'HU', 'NA', 'CG', 'BW', 'CD', 'AO', 'ZA', 'PL', 'IT', 'TD'},
+  20: {'SJ', 'AQ', 'ME', 'RS', 'GR', 'CF', 'HR', 'SE', 'AL', 'FI', 'SK', 'LV', 'MK', 'BA', 'LY', 'NO', 'HU', 'RU', 'NA', 'BW', 'CD', 'AO', 'LT', 'XK', 'ZA', 'PL', 'TD', 'RO'},
+  21: {'SJ', 'AQ', 'ME', 'RS', 'GR', 'SD', 'CF', 'SE', 'AL', 'FI', 'EE', 'SK', 'LV', 'MK', 'LY', 'NO', 'HU', 'RU', 'NA', 'BW', 'CD', 'AO', 'LT', 'XK', 'ZA', 'PL', 'TD', 'RO'},
+  22: {'SJ', 'AQ', 'RS', 'GR', 'SD', 'CF', 'ZM', 'UA', 'SE', 'FI', 'EE', 'SK', 'LV', 'MK', 'LY', 'NO', 'HU', 'RU', 'NA', 'BW', 'CD', 'AO', 'LT', 'XK', 'ZA', 'PL', 'BG', 'TD', 'RO'},
+  23: {'SJ', 'AQ', 'RS', 'GR', 'SD', 'CF', 'ZM', 'UA', 'SE', 'FI', 'EE', 'SK', 'LV', 'BY', 'MK', 'LY', 'NO', 'HU', 'NA', 'BW', 'CD', 'LT', 'AO', 'ZA', 'PL', 'BG', 'TD', 'RO'},
+  24: {'SJ', 'AQ', 'GR', 'SD', 'SS', 'CF', 'ZM', 'UA', 'SE', 'FI', 'EE', 'LV', 'BY', 'LY', 'NO', 'NA', 'BW', 'CD', 'LT', 'AO', 'ZA', 'PL', 'BG', 'TD', 'EG', 'RO'},
+  25: {'SJ', 'AQ', 'GR', 'SD', 'SS', 'CF', 'ZM', 'TR', 'UA', 'SE', 'FI', 'EE', 'ZW', 'LV', 'BY', 'LY', 'NO', 'NA', 'BW', 'CD', 'LT', 'AO', 'ZA', 'BG', 'EG', 'RO'},
+  26: {'SJ', 'AQ', 'SS', 'UA', 'BW', 'CD', 'LT', 'FI', 'ZA', 'EE', 'ZW', 'BG', 'NO', 'LY', 'GR', 'SD', 'ZM', 'CF', 'TR', 'LV', 'EG', 'RO', 'BY'},
+  27: {'SJ', 'AQ', 'LS', 'GR', 'SD', 'SS', 'ZM', 'CF', 'UA', 'TR', 'FI', 'EE', 'ZW', 'LV', 'BY', 'NO', 'RU', 'BW', 'CD', 'LT', 'ZA', 'BG', 'MD', 'EG', 'RO'},
+  28: {'SJ', 'AQ', 'UA', 'BW', 'CD', 'LS', 'FI', 'ZA', 'ZM', 'EE', 'ZW', 'BG', 'MD', 'GR', 'SD', 'RO', 'SS', 'NO', 'TR', 'LV', 'EG', 'RU', 'BY'},
+  29: {'SJ', 'AQ', 'TZ', 'BI', 'LS', 'GR', 'SD', 'ZM', 'SS', 'UA', 'TR', 'FI', 'ZW', 'BY', 'NO', 'RU', 'BW', 'CD', 'RW', 'ZA', 'BG', 'MD', 'UG', 'EG', 'RO'},
+  30: {'SJ', 'AQ', 'TZ', 'BI', 'LS', 'SZ', 'SD', 'ZM', 'SS', 'UA', 'TR', 'FI', 'ZW', 'BY', 'MZ', 'NO', 'RU', 'RW', 'CD', 'BW', 'ZA', 'MD', 'UG', 'EG', 'RO'},
+  31: {'SJ', 'AQ', 'UA', 'TZ', 'MZ', 'BI', 'CD', 'RW', 'FI', 'ZA', 'ZM', 'SZ', 'ZW', 'SD', 'RO', 'SS', 'NO', 'TR', 'UG', 'EG', 'RU', 'BY'},
+  32: {'SJ', 'AQ', 'TZ', 'MZ', 'BY', 'CD', 'ZM', 'ZA', 'FI', 'SZ', 'ZW', 'MW', 'SD', 'CY', 'SS', 'NO', 'TR', 'UG', 'EG', 'RU', 'UA'},
+  33: {'SJ', 'AQ', 'TZ', 'MZ', 'ZM', 'ZA', 'ET', 'ZW', 'MW', 'SZ', 'SD', 'CY', 'SS', 'NO', 'KE', 'TR', 'UG', 'EG', 'RU', 'UA'},
+  34: {'SJ', 'AQ', 'TZ', 'MZ', 'ZM', 'IL', 'ZA', 'ET', 'MW', 'ZW', 'PS', 'SA', 'SD', 'CY', 'SS', 'NO', 'KE', 'TR', 'UG', 'EG', 'RU', 'UA', 'PS'},
   35: {'AQ', 'TZ', 'MZ', 'LB', 'JO', 'IL', 'ET', 'MW', 'SY', 'PS', 'SA', 'SD', 'CY', 'SS', 'NO', 'KE', 'TR', 'UG', 'EG', 'RU', 'UA', 'PS'},
   36: {'AQ', 'ER', 'TZ', 'MZ', 'LB', 'JO', 'IL', 'ET', 'SY', 'MW', 'PS', 'SA', 'SD', 'SS', 'KE', 'TR', 'UG', 'EG', 'RU', 'UA', 'PS'},
   37: {'AQ', 'ER', 'TZ', 'MZ', 'LB', 'JO', 'ZA', 'ET', 'SY', 'SA', 'SD', 'KE', 'TR', 'EG', 'RU', 'UA'},
