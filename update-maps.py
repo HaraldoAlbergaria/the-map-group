@@ -42,8 +42,20 @@ def memberFilesExist(member_path):
         return True
     return False
 
+def sendEmail(member_name):
+    try:
+        os.system("echo \"Member \'" + member_name + "\' has joined the group but has no geotagged photos.\" | mail -s \"The Map Group: New member with no photos\" admin@the-map-group.top")
+    except:
+        pass
+
 
 #===== MAIN CODE ==============================================================#
+
+reset = True
+
+if reset:
+    command = "rm {}/countries/members.py".format(repo_path)
+    os.system(command)
 
 current_members = []
 members_list = []
@@ -102,22 +114,24 @@ for page_number in range(number_of_pages, 0, -1):
                 print('##### Generating map for new member: {}...'.format(member_name[0:16]))
             else:
                 print('##### Updating map for member: {}...'.format(member_name[0:20]))
-                # get 'locations.py', 'countries.py' and 'user.js' from github
-                print('Getting locations and countries from remote...')
-                try:
-                    if not os.path.exists("{}/locations.py".format(member_path)):
-                        command = "wget -q -P {0} https://raw.githubusercontent.com/the-map-group/the-map-group.github.io/master/people/{1}/locations.py".format(member_path, member_alias)
-                        os.system(command)
-                    if not os.path.exists("{}/countries.py".format(member_path)):
-                        command = "wget -q -P {0} https://raw.githubusercontent.com/the-map-group/the-map-group.github.io/master/people/{1}/countries.py".format(member_path, member_alias)
-                        os.system(command)
-                    if not os.path.exists("{}/user.py".format(member_path)):
-                        command = "wget -q -P {0} https://raw.githubusercontent.com/the-map-group/the-map-group.github.io/master/people/{1}/user.py".format(member_path, member_alias)
-                        os.system(command)
-                except:
-                    pass
 
-            if not is_new_member and not memberFilesExist(member_path):
+                if not reset:
+                    # get 'locations.py', 'countries.py' and 'user.js' from github
+                    print('Getting locations and countries from remote...')
+                    try:
+                        if not os.path.exists("{}/locations.py".format(member_path)):
+                            command = "wget -q -P {0} https://raw.githubusercontent.com/the-map-group/the-map-group.github.io/master/people/{1}/locations.py".format(member_path, member_alias)
+                            os.system(command)
+                        if not os.path.exists("{}/countries.py".format(member_path)):
+                            command = "wget -q -P {0} https://raw.githubusercontent.com/the-map-group/the-map-group.github.io/master/people/{1}/countries.py".format(member_path, member_alias)
+                            os.system(command)
+                        if not os.path.exists("{}/user.py".format(member_path)):
+                            command = "wget -q -P {0} https://raw.githubusercontent.com/the-map-group/the-map-group.github.io/master/people/{1}/user.py".format(member_path, member_alias)
+                            os.system(command)
+                    except:
+                        pass
+
+            if not reset and not is_new_member and not memberFilesExist(member_path):
                 continue
 
             if memberFilesExist(member_path):
@@ -131,7 +145,8 @@ for page_number in range(number_of_pages, 0, -1):
             os.system(command)
 
             if memberFilesExist(member_path):
-                loc_fsize_diff = os.stat("{}/locations.py".format(member_path)).st_size - prev_loc_fsize
+                loc_fsize = os.stat("{}/locations.py".format(member_path)).st_size
+                loc_fsize_diff = loc_fsize - prev_loc_fsize
             else:
                 loc_fsize_diff = 0
 
@@ -141,23 +156,32 @@ for page_number in range(number_of_pages, 0, -1):
                 os.system(command)
 
             # commit map
-            if (loc_fsize_diff != 0 or is_new_member) and memberFilesExist(member_path):
+            if reset or ((loc_fsize_diff != 0 or (is_new_member and loc_fsize > 21)) and memberFilesExist(member_path)):
                 print('Commiting map data...')
                 os.system("git add -f {}/index.html".format(member_path))
                 os.system("git add -f {}/locations.py".format(member_path))
                 os.system("git add -f {}/countries.py".format(member_path))
                 os.system("git add -f {}/user.py".format(member_path))
+                os.system("git add -f {}/not_found_places.py".format(repo_path))
+                os.system("git add -f {}/log/*".format(repo_path))
                 os.system("git commit -m \"[auto] Updated map for member \'{}\'\"".format(member_name))
+                os.system("git push origin main")
                 print('Done!')
             else:
                 print("Everything is up-to-date. Nothing to commit!")
 
-            if is_new_member:
+            # create discussion topic for new member
+            if is_new_member and loc_fsize > 21:
                 topic_subject = "[MAP] {}".format(member_name)
                 member_map = "{0}/people/{1}/".format(map_group_url, member_alias)
-                topic_message = "[{0}/{1}/] Map link: <a href=\"{3}\"><b>{3}</b></a>\n\nClick on the markers to see the photos taken on the corresponding location.".format(photos_url, member_alias, member_name, member_map)
+                topic_message = "[{0}/{1}/] Your map has been created! If you can not see it yet, please, wait some minutes and try again.\n\nMap link: <a href=\"{3}\"><b>{3}</b></a>\n\nClick on the markers to see the photos taken on the corresponding location.".format(photos_url, member_alias, member_name, member_map)
                 flickr.groups.discuss.topics.add(api_key=api_key, group_id=group_id, subject=topic_subject, message=topic_message)
                 print('Created discussion topic for new member')
+
+            if loc_fsize <= 21:
+                print('Member has no geottaged photos. Sending e-mail...')
+                sendEmail(member_name)
+
         except:
             pass
 
@@ -233,6 +257,7 @@ print('Commiting map data...')
 os.system("git add -f {}/locations.py".format(repo_path))
 os.system("git add -f {}/members.py".format(repo_path))
 os.system("git add -f {}/countries/*".format(repo_path))
+os.system("git add -f {}/log/*".format(repo_path))
 os.system("git commit -m \"[auto] Updated group map\"")
 print('Done!')
 
@@ -282,11 +307,11 @@ for member in members_dirs:
     if member not in current_members:
         # remove member directory
         os.system("git rm -fr {0}/{1}".format(people_path, member))
-        os.system("git commit -m \"Removed member \'{}\'\"".format(member))
+        os.system("git commit -m \"[auto] Removed member \'{}\'\"".format(member))
         os.system("rm -fr {0}/{1}".format(people_path, member))
         print("Removed member: {}".format(member))
         removed += 1
         for topic in topics:
             if member in topic[1]:
-                reply_message = "[https://www.flickr.com/photos/{}/] Your map was removed. Feel free to come back anytime and a new map will be created for you.".format(member)
+                reply_message = "[https://www.flickr.com/photos/{}/] Your map has been removed. Feel free to come back anytime and a new map will be created for you.".format(member)
                 flickr.groups.discuss.replies.add(api_key=api_key, group_id=group_id, topic_id=topic[0], message=reply_message)
