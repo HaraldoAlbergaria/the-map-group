@@ -4,6 +4,7 @@ from geopy.geocoders import Nominatim
 from geopy.geocoders import GeoNames
 from geopy.geocoders import MapBox
 
+import os
 import api_credentials
 import not_found_places
 
@@ -23,13 +24,13 @@ def isTerritory(lat, long, code):
 
 def updateMapboxCallsCount(log_dir):
     try:
-        mbx_file = open("{}/mapbox_calls.log".format(log_dir), "r")
+        mbx_file = open("{}/mapbox_calls".format(log_dir), "r")
         mapbox_calls = int(mbx_file.read().strip())
         mapbox_calls += 1
         mbx_file.close()
     except:
         mapbox_calls = 1
-    mbx_file = open("{}/mapbox_calls.log".format(log_dir), "w")
+    mbx_file = open("{}/mapbox_calls".format(log_dir), "w")
     mbx_file.write(str(mapbox_calls))
     mbx_file.close()
 
@@ -53,6 +54,26 @@ def getInfoFromGeoNames(latlong):
         name = ''
     return [code, name]
 
+def getInfoFromMapBox(latlong):
+    try:
+        geolocator3 = MapBox(api_key=api_credentials.mapbox_token)
+        location = geolocator3.reverse(latlong, exactly_one=True)
+        location_info = location.raw['context']
+        len_info = len(location_info)
+        if len_info > 4:
+            info_index = 3
+        else:
+            info_index = len_info - 1
+        code = location_info[info_index]['short_code'].upper()
+        name = location_info[info_index]['text']
+        if len(code) > 2:
+            code = code[:2]
+    except:
+        code = ''
+        name = ''
+    updateMapboxCallsCount(log_dir)
+    return [code, name]
+
 
 def getCountryInfo(lat, long):
 
@@ -64,8 +85,12 @@ def getCountryInfo(lat, long):
     geonames_exclude = []
 
     # control if report and errors files will be generated
-    gen_rep_file = False
     gen_err_file = False
+    gen_rep_file = True
+    rep_matrix = False
+    rep_nominatim = False
+    rep_geonames = False
+    rep_mapbox = True
 
     ### DO NOT MODIFY! ###
     is_territory = False
@@ -76,26 +101,38 @@ def getCountryInfo(lat, long):
     htm_file = open("{}/index.html".format(log_dir), "a")
     log_file = open("{}/countries_info.log".format(log_dir), "a")
 
+    try:
+        if not gen_err_file and os.path.isfile("{}/countries_info.err".format(log_dir)):
+            os.system("git rm {}/countries_info.err".format(log_dir))
+        if not gen_rep_file and os.path.isfile("{}/countries_info.rep".format(log_dir)):
+            os.system("git rm {}/countries_info.rep".format(log_dir))
+    except:
+        pass
+
     latlong = (lat, long)
     latitude = int(lat)
     longitude = int(long)
+    lat_long = [latitude, longitude]
 
     try:
         not_found_places_list = not_found_places.coords
-        if [latitude, longitude] in not_found_places_list:
-            log_file.write("{} skipped. Corresponds to [{}, {}] at not found list\n".format(latlong, latitude, longitude))
+        not_found_places_excludes = not_found_places.excludes
+        if lat_long in not_found_places_list and lat_long not in not_found_places_excludes:
+            log_file.write("{} skipped: [{}, {}] is at not found list\n".format(latlong, latitude, longitude))
             code = ''
             name = ''
             return [code, name]
+        elif lat_long in not_found_places_excludes:
+            log_file.write("{} not skipped: [{}, {}] is at not found excludes\n".format(latlong, latitude, longitude))
     except:
         print("ERROR: FATAL: Unable to load the not found places list. File not_found_places.py doesn\'t exist.")
         sys.exit()
 
-    if gen_rep_file:
-        rep_file = open("{}/countries_info.rep".format(log_dir), "a")
-
     if gen_err_file:
         err_file = open("{}/countries_info.err".format(log_dir), "a")
+
+    if gen_rep_file:
+        rep_file = open("{}/countries_info.rep".format(log_dir), "a")
 
     lat_codes = latitude_dict[latitude]
     long_codes = longitude_dict[longitude]
@@ -104,7 +141,7 @@ def getCountryInfo(lat, long):
     if len(codes) == 1:
         code = codes.pop()
         name = countries_dict[code][0]
-        if gen_rep_file:
+        if gen_rep_file and rep_matrix:
             rep_file.write("Matrix: {} = [{}, {}] => '{}: {}'\n".format(latlong, latitude, longitude, code, name))
     else:
 
@@ -124,11 +161,10 @@ def getCountryInfo(lat, long):
         except:
             pass
 
-        if gen_rep_file and code != '':
+        if gen_rep_file and rep_nominatim and code != '':
             rep_file.write("Nominatim: {} => '{}: {}'\n".format(latlong, code, name))
         elif gen_err_file:
             err_file.write("Nominatim: {} => NOT FOUND\n".format(latlong))
-
 
         # get info from GeoNames if not found by Nominatim
         if code == '':
@@ -141,7 +177,7 @@ def getCountryInfo(lat, long):
                 code = ''
                 name = ''
 
-            if gen_rep_file and code != '':
+            if gen_rep_file and rep_geonames and code != '':
                 rep_file.write("GeoNames: {} => '{}: {}'\n".format(latlong, code, name))
             elif gen_err_file:
                 err_file.write("GeoNames: {} => NOT FOUND\n".format(latlong))
@@ -160,70 +196,80 @@ def getCountryInfo(lat, long):
                     if gen_rep_file:
                         rep_file.write("\n")
         except:
-            pass
+            if code != '':
+                rep_file.write("\'{}: {}\' = NOT FOUND AT DICTIONARY\n".format(code, name))
 
         # check if location is in a territory of another country
         try:
             is_territory = isTerritory(lat, long, code)
             if is_territory and name == countries_dict[code][0]:
-                htm_file.write("<a href=\"https://www.google.com.br/maps/place/@{},{},10z\" target=\"_blank\">{}</a> is in a territory of \'{}\'<br>\n".format(lat, long, latlong, name))
+                htm_file.write("(<a href=\"https://www.google.com.br/maps/place/@{0},{1},10z\" target=\"_blank\">{0}, {1}</a>) is in a territory of \'{}\'<br>\n".format(lat, long, name))
                 log_file.write("{} is in a territory of \'{}\'\n".format(latlong, name))
         except:
             pass
 
         # get the correct info from MapBox if location is in a territory of another country
         if use_mapbox and (is_territory or code == ''):
-            try:
-                geolocator3 = MapBox(api_key=api_credentials.mapbox_token)
-                location = geolocator3.reverse(latlong, exactly_one=True)
-                location_info = location.raw['context']
-                len_info = len(location_info)
-                if len_info > 4:
-                    info_index = 3
-                else:
-                    info_index = len_info - 1
-                code = location_info[info_index]['short_code'].upper()
-                name = location_info[info_index]['text']
-                if len(code) > 2:
-                    code = code[:2]
-                if code != '':
-                    if is_territory:
-                        htm_file.write("\'{}: {}\' found by Mapbox geocoder<br>\n".format(code, name))
-                    if gen_rep_file:
-                        rep_file.write("MapBox: {} => \'{}: {}\'\n".format(latlong, code, name))
-            except:
-                code = ''
-                name = ''
+
+            info = getInfoFromMapBox(latlong)
+            code = info[0]
+            name = info[1]
+
+            if code != '':
+                if is_territory:
+                    htm_file.write("\'{}: {}\' found by Mapbox geocoder<br>\n".format(code, name))
+                if gen_rep_file and rep_mapbox:
+                    rep_file.write("MapBox: {} => \'{}: {}\'\n".format(latlong, code, name))
 
             if gen_err_file and code == '':
                 err_file.write("MapBox: {} => NOT FOUND\n".format(latlong))
-
-            updateMapboxCallsCount(log_dir)
 
         if not use_mapbox and (is_territory or code == ''):
             updateMapboxCallsCount(log_dir)
 
         if code == '':
-            htm_file.write("<a href=\"https://www.google.com.br/maps/place/@{},{},10z\" target=\"_blank\">{}</a> not found by any of the geocoders<br>\n".format(lat, long, latlong))
-            log_file.write("{} not found by any of the geocoders\n".format(latlong))
-            try:
-                coord_01 = (latitude, longitude + 1)
-                coord_10 = (latitude + 1, longitude)
-                coord_11 = (latitude + 1, longitude + 1)
-                code_01 = getInfoFromGeoNames(coord_01)[0]
-                code_10 = getInfoFromGeoNames(coord_10)[0]
-                code_11 = getInfoFromGeoNames(coord_11)[0]
-                if code_01 == '' and code_10 == '' and code_11 == '':
-                    not_found_places_list.append([latitude, longitude])
+            htm_file.write("(<a href=\"https://www.google.com.br/maps/place/@{0},{1},8z\" target=\"_blank\">{0}, {1}</a>) not found by any of the geocoders: ".format(lat, long))
+            log_file.write("{} not found by any of the geocoders: ".format(latlong))
+            if lat_long not in not_found_places_excludes:
+                try:
+                    coord_01 = (latitude, longitude + 1)
+                    coord_10 = (latitude + 1, longitude)
+                    coord_11 = (latitude + 1, longitude + 1)
+                    if use_mapbox:
+                        code_01 = getInfoFromMapBox(coord_01)[0]
+                        code_10 = getInfoFromMapBox(coord_10)[0]
+                        code_11 = getInfoFromMapBox(coord_11)[0]
+                    else:
+                        code_01 = getInfoFromGeoNames(coord_01)[0]
+                        code_10 = getInfoFromGeoNames(coord_10)[0]
+                        code_11 = getInfoFromGeoNames(coord_11)[0]
+                        # count as MapBox calls as if 'use_mapbox = True'
+                        for i in range(3):
+                            updateMapboxCallsCount(log_dir)
+                    if code_01 == '' and code_10 == '' and code_11 == '':
+                        not_found_places_list.append(lat_long)
+                        htm_file.write("<a href=\"https://www.google.com.br/maps/place/@{0},{1},8z\" target=\"_blank\">[{0}, {1}]</a> added to not found list<br>\n".format(latitude, longitude))
+                        log_file.write("[{}, {}] added to not found list\n".format(latitude, longitude))
+                    else:
+                        not_found_places_excludes.append(lat_long)
+                        htm_file.write("[{}, {}] not found but it is not in an isolated place, added to not found excludes<br>\n".format(latitude, longitude))
+                        log_file.write("[{}, {}] not found but it is not in an isolated place, added to not found excludes\n".format(latitude, longitude))
                     not_found_file = open("{}/not_found_places.py".format(run_dir), "w")
                     not_found_file.write("coords = [\n")
                     for coord in not_found_places_list:
                         not_found_file.write("  [{}, {}],\n".format(coord[0], coord[1]))
+                    not_found_file.write("]\n\n")
+                    not_found_file.write("excludes = [\n")
+                    for exclude in not_found_places_excludes:
+                        not_found_file.write("  [{}, {}],\n".format(exclude[0], exclude[1]))
                     not_found_file.write("]\n")
                     not_found_file.close()
-                    log_file.write("[{}, {}] added to not found list\n".format(latitude, longitude))
-            except:
-                pass
+                except:
+                    htm_file.write("[{}, {}] not added to not found list, exception ocurred<br>\n".format(latitude, longitude))
+                    log_file.write("[{}, {}] not added to not found list, exception ocurred\n".format(latitude, longitude))
+            else:
+                htm_file.write("[{}, {}] not found but it is at not found excludes<br>\n".format(latitude, longitude))
+                log_file.write("[{}, {}] not found but it is at not found excludes\n".format(latitude, longitude))
 
         htm_file.close()
         log_file.close()
@@ -272,7 +318,7 @@ countries_dict = {
     'BY': ['Belarus', [[23.1994938494, 51.3195034857, 32.6936430193, 56.1691299506]]],
     'BZ': ['Belize', [[-89.2291216703, 15.8869375676, -88.1068129138, 18.4999822047]]],
     'CA': ['Canada', [[-140.99778, 41.6751050889, -52.6480987209, 83.23324]]],
-    'CD': ['Democratic Republic of Congo', [[12.1823368669, -13.2572266578, 31.1741492042, 5.25608775474]]],
+    'CD': ['Democratic Republic of the Congo', [[12.1823368669, -13.2572266578, 31.1741492042, 5.25608775474]]],
     'CF': ['Central African Republic', [[14.4594071794, 2.2676396753, 27.3742261085, 11.1423951278]]],
     'CG': ['Congo', [[11.0937728207, -5.03798674888, 18.4530652198, 3.72819651938]]],
     'CH': ['Switzerland', [[6.02260949059, 45.7769477403, 10.4427014502, 47.8308275417]]],
@@ -471,6 +517,11 @@ countries_dict = {
     'SJ': ['Svalbard', [[10.04687789766614, 74.35498023304599, 34.306805275624086, 80.81809323746566]]],
     'AS': ['American Samoa', [[-170.8610098435224, -14.38536238983563, -170.5262297667812, -14.226237921088725]]],
     'BL': ['Saint Barthelemy', [[-62.920134746383596, 17.874249226856882, -62.781361781310444, 17.962748324810512]]],
+    'PW': ['Palau', [[130.85241878355825, 2.276788844461931, 135.76330741590354, 8.605929299211784]]],
+    'GU': ['Guam', [[144.37910069285803, 13.074077183069257, 145.2219837083251, 13.871093966229127]]],
+    'NF': ['Norfolk Island', [[167.88255366736797, -29.154067146012604, 168.04076064851756, -28.96378963203278]]],
+    'AX': ['Aland Islands', [[19.41546265377435, 59.89282758281474, 21.155608234093492, 60.61358224907711]]],
+    'PF': ['French Polynesia', [[-152.8492413037696, -18.504696574791765, -136.457641544589, -7.824286674613189]]],
     'WW': ['Worldwide', [[-160, -20, 180, 60]]]
 }
 
@@ -484,7 +535,15 @@ codes_dict = {
   'American Samoa': 'AS',
   'Saint Lucia': 'LC',
   'Saint Vincent and the Grenadines': 'VC',
-  'Svalbard and Jan Mayen': 'SJ'
+  'Svalbard and Jan Mayen': 'SJ',
+  'Réunion': 'RE',
+  'Czechia': 'CZ',
+  'Northern Cyprus': 'CY',
+  'Eswatini': 'SZ',
+  'The Netherlands': 'NL',
+  'Palestinian Territory': 'PS',
+  'Abkhazia': 'GE',
+  'Åland': 'AX'
 }
 
 latitude_dict = {

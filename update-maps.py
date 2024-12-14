@@ -139,6 +139,19 @@ for page_number in range(number_of_pages, 0, -1):
             else:
                 prev_loc_fsize = 0
 
+            htm_file = open("{}/log/index.html".format(repo_path), "a")
+            htm_file.write("<br>##### {}:<br>\n".format(member_name))
+            htm_file.close()
+            log_file = open("{}/log/countries_info.log".format(repo_path), "a")
+            log_file.write("\n##### {}:\n".format(member_name))
+            log_file.close()
+            rep_file = open("{}/log/countries_info.rep".format(repo_path), "a")
+            rep_file.write("\n##### {}:\n".format(member_name))
+            rep_file.close()
+            err_file = open("{}/log/countries_info.err".format(repo_path), "a")
+            err_file.write("\n##### {}:\n".format(member_name))
+            err_file.close()
+
             # generate/update member's map
             print('Starting \'Flickr Map\' script...')
             command = "{}/generate-map-data.py".format(member_path)
@@ -162,6 +175,7 @@ for page_number in range(number_of_pages, 0, -1):
                 os.system("git add -f {}/locations.py".format(member_path))
                 os.system("git add -f {}/countries.py".format(member_path))
                 os.system("git add -f {}/user.py".format(member_path))
+                os.system("git add -f {}/countries/*".format(repo_path))
                 os.system("git add -f {}/not_found_places.py".format(repo_path))
                 os.system("git add -f {}/log/*".format(repo_path))
                 os.system("git commit -m \"[auto] Updated map for member \'{}\'\"".format(member_name))
@@ -257,6 +271,7 @@ print('Commiting map data...')
 os.system("git add -f {}/locations.py".format(repo_path))
 os.system("git add -f {}/members.py".format(repo_path))
 os.system("git add -f {}/countries/*".format(repo_path))
+os.system("git add -f {}/not_found_places.py".format(repo_path))
 os.system("git add -f {}/log/*".format(repo_path))
 os.system("git commit -m \"[auto] Updated group map\"")
 print('Done!')
