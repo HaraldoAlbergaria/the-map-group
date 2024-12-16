@@ -188,7 +188,7 @@ for page_number in range(number_of_pages, 0, -1):
             if is_new_member and loc_fsize > 21:
                 topic_subject = "[MAP] {}".format(member_name)
                 member_map = "{0}/people/{1}/".format(map_group_url, member_alias)
-                topic_message = "[{0}/{1}/] Your map has been created! If you can not see it yet, please, wait some minutes and try again.\n\nMap link: <a href=\"{3}\"><b>{3}</b></a>\n\nClick on the markers to see the photos taken on the corresponding location.".format(photos_url, member_alias, member_name, member_map)
+                topic_message = "[{0}/{1}/] Your map has been created!\n\nMap link: <a href=\"{3}\"><b>{3}</b></a>\n\nClick on the markers to see the photos taken on the corresponding location.".format(photos_url, member_alias, member_name, member_map)
                 flickr.groups.discuss.topics.add(api_key=api_key, group_id=group_id, subject=topic_subject, message=topic_message)
                 print('Created discussion topic for new member')
 
@@ -219,16 +219,18 @@ for page_number in range(number_of_pages, 0, -1):
 
         member_n_places = user_info['markers']
         member_n_photos = user_info['photos']
+        member_n_countries = user_info['countries']
 
         already_in_list = False
         for i in range(len(members_list)):
             if members_list[i][0] == member_id:
                 members_list[i][4] = member_n_places
                 members_list[i][5] = member_n_photos
+                members_list[i][6] = member_n_countries
                 already_in_list = True
 
         if not already_in_list and member_n_places > 0:
-            members_list.append([member_id, member_alias, member_name, member_avatar, member_n_places, member_n_photos])
+            members_list.append([member_id, member_alias, member_name, member_avatar, member_n_places, member_n_photos member_n_countries])
 
         print("Finished!\n")
 
@@ -249,7 +251,7 @@ members_file = open("{}/members.py".format(repo_path), 'w')
 members_file.write("members_list = [\n")
 
 for i in range(len(members_list)):
-    members_file.write("  [\'{0}\', \'{1}\', \'{2}\', \"{3}\", {4}, {5}".format(members_list[i][0], members_list[i][1], members_list[i][2].replace("\'", "\\\'"), members_list[i][3], members_list[i][4], members_list[i][5]))
+    members_file.write("  [\'{0}\', \'{1}\', \'{2}\', \"{3}\", {4}, {5}, {6}".format(members_list[i][0], members_list[i][1], members_list[i][2].replace("\'", "\\\'"), members_list[i][3], members_list[i][4], members_list[i][5], members_list[i][6]))
     if i < len(members_list)-1:
         members_file.write("],\n")
     else:
