@@ -173,9 +173,9 @@ def getCountryInfo(lat, long):
 
         if code != '':
             if gen_rep_file and rep_nominatim:
-                rep_file.write("Nominatim: {} => '{}: {}'\n".format(latlong, code, name))
+                rep_file.write("Nominatim: {} = '{}: {}'\n".format(latlong, code, name))
         elif gen_err_file:
-            err_file.write("Nominatim: {} => NOT FOUND\n".format(latlong))
+            err_file.write("Nominatim: {} = NOT FOUND\n".format(latlong))
 
         # get info from GeoNames if not found by Nominatim
         if code == '':
@@ -190,9 +190,9 @@ def getCountryInfo(lat, long):
 
             if code != '' and code != '*':
                 if gen_rep_file and rep_geonames:
-                    rep_file.write("GeoNames: {} => '{}: {}'\n".format(latlong, code, name))
+                    rep_file.write("-> GeoNames: {} = '{}: {}'\n".format(latlong, code, name))
             elif gen_err_file:
-                err_file.write("GeoNames: {} => NOT FOUND\n".format(latlong))
+                err_file.write("-> GeoNames: {} = NOT FOUND\n".format(latlong))
 
         # assign correct code and name to some countries using the dictionaries
         try:
@@ -215,7 +215,7 @@ def getCountryInfo(lat, long):
         try:
             is_territory = isTerritory(lat, long, code)
             if is_territory and name == countries_dict[code][0]:
-                htm_file.write("(<a href=\"https://the-map-group.top/log/map/?lat={0}&long={1}\" target=\"_blank\">{0}, {1}</a>) is in a territory of \'{2}\': \n".format(lat, long, name))
+                htm_file.write("(<a href=\"https://the-map-group.top/log/map/?lat={0}&long={1}&marker=1\" target=\"_blank\">{0}, {1}</a>) is in a territory of \'{2}\': \n".format(lat, long, name))
                 log_file.write("{} is in a territory of \'{}\': ".format(latlong, name))
         except:
             pass
@@ -227,21 +227,24 @@ def getCountryInfo(lat, long):
             code = info[0]
             name = info[1]
 
-            if gen_err_file and (code == '' or code = '*'):
-                err_file.write("MapBox: {} => NOT FOUND\n".format(latlong))
+            if gen_err_file and (code == '' or code == '*'):
+                err_file.write("--> MapBox: {} = NOT FOUND\n".format(latlong))
 
             if gen_err_file and code == '**':
                 if gen_err_file:
-                    err_file.write("MapBox: ERROR: Unable to get geolocator\n")
+                    err_file.write("--> MapBox: ERROR: Unable to get geolocator\n")
 
             if code != '' and code != '*' and code != '**':
                 if is_territory:
                     htm_file.write("\'{}: {}\' found by MapBox geocoder<br>\n".format(code, name))
                 if gen_rep_file and rep_mapbox:
-                    rep_file.write("MapBox: {} => \'{}: {}\'\n".format(latlong, code, name))
+                    rep_file.write("--> MapBox: {} => \'{}: {}\'\n".format(latlong, code, name))
 
         if not use_mapbox and (code == '' or is_territory):
             updateMapboxCallsCount(log_dir)
+            if is_territory:
+                htm_file.write("unable to find the name of the location<br>\n".format(code, name))
+                log_file.write("unable to find the name of the location\n".format(code, name))
 
         if code == '':
             htm_file.write("(<a href=\"https://the-map-group.top/log/map/?lat={0}&long={1}&marker=1\" target=\"_blank\">{0}, {1}</a>) not found by any of the geocoders: ".format(lat, long))
@@ -277,7 +280,9 @@ def getCountryInfo(lat, long):
                         not_found_places_excludes.append(lat_long)
                         htm_file.write("<a href=\"https://the-map-group.top/log/map/?lat={0}&long={1}\" target=\"_blank\">[{0}, {1}]</a> is not in an isolated place, added to not found excludes<br>\n".format(latitude, longitude))
                         log_file.write("[{}, {}] is not in an isolated place, added to not found excludes\n".format(latitude, longitude))
-
+                    else:
+                        htm_file.write("<a href=\"https://the-map-group.top/log/map/?lat={0}&long={1}\" target=\"_blank\">[{0}, {1}]</a> not added to not found list or excludes, an exception ocurred<br>\n".format(latitude, longitude))
+                        log_file.write("[{}, {}] not added to not found list or excludes, an exception ocurred\n".format(latitude, longitude))
                     not_found_file = open("{}/not_found_places.py".format(run_dir), "w")
                     not_found_file.write("coords = [\n")
                     for coord in not_found_places_list:
@@ -289,16 +294,16 @@ def getCountryInfo(lat, long):
                     not_found_file.write("]\n")
                     not_found_file.close()
                 except:
-                    htm_file.write("[{}, {}] not added to not found list or excludes, an exception ocurred<br>\n".format(latitude, longitude))
+                    htm_file.write("<a href=\"https://the-map-group.top/log/map/?lat={0}&long={1}\" target=\"_blank\">[{0}, {1}]</a> not added to not found list or excludes, an exception ocurred<br>\n".format(latitude, longitude))
                     log_file.write("[{}, {}] not added to not found list or excludes, an exception ocurred\n".format(latitude, longitude))
             else:
-                htm_file.write("[{}, {}] is at not found excludes<br>\n".format(latitude, longitude))
+                htm_file.write("<a href=\"https://the-map-group.top/log/map/?lat={0}&long={1}\" target=\"_blank\">[{0}, {1}]</a> is at not found excludes<br>\n".format(latitude, longitude))
                 log_file.write("[{}, {}] is at not found excludes\n".format(latitude, longitude))
-        elif code = '*':
-            htm_file.write("[{}, {}] not added to not found list or excludes, unable to get location<br>\n".format(latitude, longitude))
+        elif code == '*':
+            htm_file.write("<a href=\"https://the-map-group.top/log/map/?lat={0}&long={1}\" target=\"_blank\">[{0}, {1}]</a> not added to not found list or excludes, unable to get location<br>\n".format(latitude, longitude))
             log_file.write("[{}, {}] not added to not found list or excludes, unable to get location\n".format(latitude, longitude))
-        elif code = '**':
-            htm_file.write("[{}, {}] not added to not found list or excludes, unable to get geolocator<br>\n".format(latitude, longitude))
+        elif code == '**':
+            htm_file.write("<a href=\"https://the-map-group.top/log/map/?lat={0}&long={1}\" target=\"_blank\">[{0}, {1}]</a> not added to not found list or excludes, unable to get geolocator<br>\n".format(latitude, longitude))
             log_file.write("[{}, {}] not added to not found list or excludes, unable to get geolocator\n".format(latitude, longitude))
 
         htm_file.close()
@@ -330,14 +335,14 @@ countries_dict = {
     'AR': ['Argentina', [[-73.4154357571, -55.25, -53.628348965, -21.8323104794]]],
     'AT': ['Austria', [[9.47996951665, 46.4318173285, 16.9796667823, 49.0390742051]]],
     'AU': ['Australia', [[111.338953078, -44.6345972634, 164.569469029, -9.6681857235]]],
-    'AW': ['Aruba', [[-70.09452679952362, 12.407243342751821, -69.82504218458341, 12.639490542218121]]],
+    'AW': ['Aruba', [[-70.29452679952362, 12.407243342751821, -69.82504218458341, 12.639490542218121]]],
     'AZ': ['Azerbaijan', [[44.7939896991, 38.2703775091, 50.3928210793, 41.8606751572]]],
     'BA': ['Bosnia and Herzegovina', [[15.7500260759, 42.65, 19.59976, 45.2337767604]]],
     'BB': ['Barbados', [[-59.645815, 13.045699, -59.417162, 13.344526]]],
     'BD': ['Bangladesh', [[88.0844222351, 20.670883287, 92.6727209818, 26.4465255803]]],
     'BE': ['Belgium', [[2.51357303225, 49.5294835476, 6.15665815596, 51.4750237087]]],
     'BF': ['Burkina Faso', [[-5.47056494793, 9.61083486576, 2.17710778159, 15.1161577418]]],
-    'BG': ['Bulgaria', [[22.3805257504, 41.2344859889, 28.5580814959, 44.2349230007]]],
+    'BG': ['Bulgaria', [[22.3805257504, 41.2344859889, 29.5580814959, 44.2349230007]]],
     'BH': ['Bahrain', [[50.3470347746, 25.7659864082, 50.7709381768, 26.3683130773]]],
     'BI': ['Burundi', [[29.0249263852, -4.49998341229, 30.752262811, -2.34848683025]]],
     'BJ': ['Benin', [[0.772335646171, 6.14215770103, 3.79711225751, 12.2356358912]]],
@@ -346,7 +351,7 @@ countries_dict = {
     'BO': ['Bolivia', [[-69.5904237535, -22.8729187965, -57.4983711412, -9.76198780685]]],
     'BQ': ['Bonaire', [[-69.432215, 12.021435, -66.161908, 15.355929]]],
     'BR': ['Brazil', [[-73.9872354804, -33.7683777809, -28.7299934555, 5.24448639569]]],
-    'BS': ['Bahamas', [[-79.98, 20.71, -71.0, 27.24]]],
+    'BS': ['Bahamas', [[-79.98, 20.51, -71.0, 27.24]]],
     'BT': ['Bhutan', [[88.8142484883, 26.7194029811, 92.1037117859, 28.2964385035]]],
     'BW': ['Botswana', [[19.8954577979, -26.8285429827, 29.4321883481, -17.6618156877]]],
     'BY': ['Belarus', [[23.1994938494, 51.3195034857, 32.6936430193, 56.1691299506]]],
@@ -367,10 +372,11 @@ countries_dict = {
     'CV': ['Cape Verde', [[-25.455971, 14.706625, -22.497389, 17.224064]]],
     'CW': ['Curaçao', [[-69.21882845380156, 12.029359492620058, -68.65303257484364, 12.418583596006405]]],
     'CY': ['Cyprus', [[32.2566671079, 34.5718694118, 34.0048808123, 35.1731247015]]],
+    'NY': ['Northern Cyprus', [[32.58167868811915, 34.964828049823055, 34.74720840589335, 35.7570382711454]]],
     'CZ': ['Czech Republic', [[12.2401111182, 48.5553052842, 18.8531441586, 51.1172677679]]],
     'DE': ['Germany', [[5.98865807458, 47.3024876979, 15.0169958839, 54.983104153]]],
     'DJ': ['Djibouti', [[41.66176, 10.9268785669, 43.3178524107, 12.6996385767]]],
-    'DK': ['Denmark', [[8.08997684086, 54.8000145534, 15.6900061378, 57.730016588]]],
+    'DK': ['Denmark', [[8.08997684086, 54.6000145534, 15.6900061378, 57.930016588], [14.613165202397736, 54.96661755000927, 15.272102304381914, 55.322660495963795]]],
     'DM': ['Dominica', [[-61.470812, 15.208117, -61.235424, 15.647632]]],
     'DO': ['Dominican Republic', [[-71.9451120673, 17.598564358, -68.3179432848, 19.8849105901]]],
     'DZ': ['Algeria', [[-8.68439978681, 19.0573642034, 11.9995056495, 37.1183806422]]],
@@ -379,7 +385,7 @@ countries_dict = {
     'EG': ['Egypt', [[24.70007, 22.0, 36.86623, 33.58568]]],
     'EH': ['Western Sahara', [[-17.443494, 20.589817, -8.538591, 27.733945]]],
     'ER': ['Eritrea', [[36.3231889178, 12.4554157577, 43.3812260272, 17.9983074]]],
-    'ES': ['Spain', [[-10.39288367353, 35.946850084, 3.03948408368, 43.7483377142], [-18.569668805804973, 27.43668482526088, -12.972592777381738, 29.47483064876065], [-5.392763536146292, 35.86627481887327, -5.26521914459584, 35.92426331993819]]],
+    'ES': ['Spain', [[-10.39288367353, 35.946850084, 5.43948408368, 43.7483377142], [-18.569668805804973, 27.43668482526088, -12.972592777381738, 29.47483064876065], [-5.392763536146292, 35.86627481887327, -5.26521914459584, 35.92426331993819]]],
     'ET': ['Ethiopia', [[32.95418, 3.42206, 47.78942, 14.95943]]],
     'EU': ['European Union', [[-24.689924, 35.716942, 50.678160, 71.093955]]],
     'FI': ['Finland', [[20.6455928891, 59.746373196, 31.5160921567, 70.1641930203]]],
@@ -387,14 +393,14 @@ countries_dict = {
     'FK': ['Falkland Islands', [[-61.4, -52.3, -57.65, -50.9]]],
     'FM': ['Micronesia', [[151.374752, 6.983693, 152.204961, 7.720989]]],
     'FO': ['Faroe Islands', [[-7.723461, 61.381658, -6.215588, 62.396159]]],
-    'FR': ['France', [[-7.616257, 42.517756, 9.56001631027, 51.1485061713]]],
+    'FR': ['France', [[-7.616257, 42.417756, 9.56001631027, 51.3485061713], [8.425295708550317, 41.30316477790055, 9.614212396017411, 43.06493582438865]]],
     'GA': ['Gabon', [[8.79799563969, -3.97882659263, 14.4254557634, 2.32675751384]]],
-    'GB': ['United Kingdom', [[-9.57216793459, 48.759999905, 1.68153079591, 58.6350001085]]],
+    'GB': ['United Kingdom', [[-9.57216793459, 48.759999905, 2.78153079591, 58.6350001085]]],
     'GD': ['Grenada', [[ -61.813504, 11.989115, -61.363392, 12.540112]]],
     'GE': ['Georgia', [[39.9550085793, 41.0644446885, 46.6379081561, 43.553104153]]],
     'GG': ['Guernsey', [[-2.790948, 49.413433, -2.149365, 50.135901]]],
     'GH': ['Ghana', [[-3.24437008301, 4.71046214438, 1.0601216976, 11.0983409693]]],
-    'GI': ['Gibraltar', [[-5.467244, 36.108739, -5.337133, 36.155070]]],
+    'GI': ['Gibraltar', [[-5.357244, 36.008739, -5.337133, 36.155070]]],
     'GL': ['Greenland', [[-73.297, 60.03676, -12.20855, 83.64513]]],
     'GM': ['Gambia', [[-16.8415246241, 13.1302841252, -13.8449633448, 13.8764918075]]],
     'GN': ['Guinea', [[-15.1303112452, 7.3090373804, -7.83210038902, 12.5861829696]]],
@@ -406,7 +412,7 @@ countries_dict = {
     'GW': ['Guinea Bissau', [[-16.6774519516, 11.0404116887, -13.7004760401, 12.6281700708]]],
     'GY': ['Guyana', [[-61.4103029039, 1.26808828369, -56.5393857489, 8.36703481692]]],
     'HN': ['Honduras', [[-89.3533259753, 12.9846857772, -83.147219001, 16.0054057886]]],
-    'HR': ['Croatia', [[13.6569755388, 42.47999136, 19.3904757016, 46.5037509222]]],
+    'HR': ['Croatia', [[13.3569755388, 42.47999136, 19.3904757016, 46.5037509222]]],
     'HT': ['Haiti', [[-74.4580336168, 18.0309927434, -71.6248732164, 19.9156839055]]],
     'HU': ['Hungary', [[16.2022982113, 45.7594811061, 22.710531447, 48.6238540716]]],
     'ID': ['Indonesia', [[95.2930261576, -10.3599874813, 141.03385176, 5.47982086834]]],
@@ -416,7 +422,7 @@ countries_dict = {
     'IN': ['India', [[68.1766451354, 7.56553477623, 97.4025614766, 35.4940095078]]],
     'IQ': ['Iraq', [[38.7923405291, 29.0990251735, 48.5679712258, 37.3852635768]]],
     'IR': ['Iran', [[44.1092252948, 25.0782370061, 63.3166317076, 39.7130026312]]],
-    'IS': ['Iceland', [[-25.3261840479, 60.2763829617, -12.609732225, 66.5267923041]]],
+    'IS': ['Iceland', [[-25.3261840479, 60.2763829617, -12.609732225, 66.9267923041]]],
     'IT': ['Italy', [[6.7499552751, 36.619987291, 18.4802470232, 47.1153931748]]],
     'JE': ['Jersey', [[-2.255378, 49.161392, -2.005782, 49.262766]]],
     'JM': ['Jamaica', [[-78.3377192858, 17.7011162379, -76.1996585761, 18.5242184514]]],
@@ -429,7 +435,7 @@ countries_dict = {
     'KM': ['Comoros', [[43.188474, -12.463598, 44.608457, -11.321376]]],
     'KN': ['Saint Kitts and Nevis', [[-62.870331, 17.093414, -62.527695, 17.431763]]],
     'KP': ['North Korea', [[124.265624628, 37.669070543, 130.780007359, 42.9853868678]]],
-    'KR': ['South Korea', [[126.117397903, 34.3900458847, 129.468304478, 38.6122429469]]],
+    'KR': ['South Korea', [[124.117397903, 33.3900458847, 129.468304478, 38.6122429469]]],
     'KW': ['Kuwait', [[46.5687134133, 28.5260627304, 48.4160941913, 30.0590699326]]],
     'KY': ['Cayman Islands', [[-81.464856, 19.182946, -79.613660, 19.825009]]],
     'KZ': ['Kazakhstan', [[46.4664457538, 40.6623245306, 87.3599703308, 55.3852501491]]],
@@ -440,7 +446,7 @@ countries_dict = {
     'LK': ['Sri Lanka', [[79.6951668639, 5.96836985923, 81.7879590189, 9.84407766361], [79.6444708682081, 9.470904842099836, 79.74474918772529, 9.555829147131542]]],
     'LR': ['Liberia', [[-11.4387794662, 4.35575511313, -7.53971513511, 8.54105520267]]],
     'LS': ['Lesotho', [[26.9992619158, -30.6451058896, 29.3251664568, -28.6475017229]]],
-    'LT': ['Lithuania', [[21.0558004086, 53.9057022162, 26.5882792498, 56.3725283881]]],
+    'LT': ['Lithuania', [[21.0358004086, 53.9057022162, 26.5882792498, 56.3725283881]]],
     'LU': ['Luxembourg', [[5.67405195478, 49.4426671413, 6.24275109216, 50.1280516628]]],
     'LV': ['Latvia', [[21.0558004086, 55.61510692, 28.1767094256, 57.9701569688]]],
     'LY': ['Libya', [[9.31941084152, 19.58047, 25.16482, 33.1369957545]]],
@@ -458,12 +464,12 @@ countries_dict = {
     'MQ': ['Martinique', [[-62.234232, 14.285308, -60.797525, 14.876946]]],
     'MR': ['Mauritania', [[-17.0634232243, 14.6168342147, -4.92333736817, 27.3957441269]]],
     'MS': ['Montserrat', [[-62.256975, 16.670934, -62.127199, 16.830380]]],
-    'MT': ['Malta', [[14.166141, 35.815831, 14.590642, 36.081125]]],
+    'MT': ['Malta', [[14.166141, 35.715831, 14.590642, 36.081125]]],
     'MU': ['Mauritius', [[57.246428, -20.527530, 57.867156, -19.769458]]],
     'MV': ['Maldives', [[72.358411, -0.865774, 74.555676, 6.906712]]],
     'MW': ['Malawi', [[32.6881653175, -16.8012997372, 35.7719047381, -9.23059905359]]],
     'MX': ['Mexico', [[-119.12776, 14.5388286402, -86.691982388, 32.72083]]],
-    'MY': ['Malaysia', [[100.085756871, 0.773131415201, 119.181903925, 6.92805288332]]],
+    'MY': ['Malaysia', [[99.085756871, 0.773131415201, 119.181903925, 6.92805288332]]],
     'MZ': ['Mozambique', [[30.1794812355, -26.7421916643, 40.7754752948, -10.3170960425]]],
     'NA': ['Namibia', [[11.7341988461, -29.045461928, 25.0844433937, -16.9413428687]]],
     'NC': ['New Caledonia', [[163.029605748, -23.3999760881, 168.120011428, -19.1056458473]]],
@@ -471,7 +477,7 @@ countries_dict = {
     'NG': ['Nigeria', [[2.69170169436, 4.24059418377, 14.5771777686, 13.8659239771]]],
     'NI': ['Nicaragua', [[-87.6684934151, 10.7268390975, -83.147219001, 15.0162671981]]],
     'NL': ['Netherlands', [[3.31497114423, 50.803721015, 7.09205325687, 53.5104033474]]],
-    'NO': ['Norway', [[4.99207807783, 58.0788841824, 31.29341841, 71.21311908]]],
+    'NO': ['Norway', [[4.99207807783, 57.0788841824, 31.29341841, 71.21311908]]],
     'NP': ['Nepal', [[80.0884245137, 26.3978980576, 88.1748043151, 30.4227169866]]],
     'NR': ['Nauru', [[166.9007475834, -0.5573764007, 166.9685492693, -0.4984335412]]],
     'NU': ['Niue', [[-169.954904, -19.160813, -169.762987, -18.948258]]],
@@ -486,19 +492,19 @@ countries_dict = {
     'PR': ['Puerto Rico', [[-67.2424275377, 17.946553453, -65.5910037909, 18.5206011011]]],
     'PS': ['West Bank', [[34.9274084816, 31.3534353704, 35.5456653175, 32.5325106878]]],
     'PS': ['Palestine', [[34.161353, 31.036574, 35.864234, 32.824322]]],
-    'PT': ['Portugal', [[-9.72657060387, 36.838268541, -6.3890876937, 42.280468655], [-17.351724962564013, 32.401532401650364, -16.048078338508628, 33.13531220458579], [-32.47751352524867, 36.137579870831885, -21.469213296357385, 40.763624391184145]]],
+    'PT': ['Portugal', [[-11.72657060387, 36.838268541, -6.3890876937, 42.280468655], [-17.451724962564013, 31.401532401650364, -16.048078338508628, 33.13531220458579], [-32.47751352524867, 36.137579870831885, -21.469213296357385, 40.763624391184145]]],
     'PY': ['Paraguay', [[-62.6850571357, -27.5484990374, -54.2929595608, -19.3427466773]]],
-    'QA': ['Qatar', [[50.7439107603, 24.5563308782, 51.6067004738, 26.1145820175]]],
+    'QA': ['Qatar', [[50.7439107603, 24.5563308782, 52.6067004738, 26.1145820175]]],
     'RE': ['Reunion', [[55.206600, -21.375728, 55.856996, -20.867645]]],
     'RO': ['Romania', [[20.2201924985, 43.6884447292, 29.62654341, 48.2208812526]]],
     'RS': ['Serbia', [[18.82982, 42.2452243971, 22.9860185076, 46.1717298447]]],
     'RU': ['Russia', [[26.822680, 40.483493, 180, 81.903807]]],
     'RW': ['Rwanda', [[29.0249263852, -2.91785776125, 30.8161348813, -1.13465911215]]],
     'SA': ['Saudi Arabia', [[34.6323360532, 16.3478913436, 55.6666593769, 32.161008816]]],
-    'SB': ['Solomon Islands', [[156.491357864, -10.8263672828, 162.398645868, -6.59933847415]]],
+    'SB': ['Solomon Islands', [[155.391357864, -10.8263672828, 162.398645868, -6.49933847415]]],
     'SC': ['Seychelles', [[55.174998, -4.822535, 56.007276, -3.546368]]],
     'SD': ['Sudan', [[21.93681, 8.61972971293, 38.4100899595, 22.0], [31.309568631189364, 22.0, 31.51105877462657, 22.228282131067726]]],
-    'SE': ['Sweden', [[11.0273686052, 55.3617373725, 23.9033785336, 69.1062472602]]],
+    'SE': ['Sweden', [[10.0273686052, 55.2617373725, 23.9033785336, 69.1062472602]]],
     'SG': ['Singapore', [[103.570233, 1.158152, 104.097863, 1.468348]]],
     'SH': ['Saint Helena', [[-15.8169342584, -38.0372386419, -5.6134693669, -11.8971012947]]],
     'SI': ['Slovenia', [[13.367471, 45.418064, 16.618664, 46.884908]]],
@@ -527,8 +533,8 @@ countries_dict = {
     'TO': ['Tonga', [[-176.986604, -22.027399, -173.069058, -15.410732]]],
     'TR': ['Turkey', [[25.60417275656444, 35.27139944988264, 47.7939896991, 42.1414848903]]],
     'TT': ['Trinidad and Tobago', [[-61.95, 10.0, -60.895, 10.89]]],
-    'TV': ['Tuvalu', [[175.014362906, -11.134731836, -178.119182207, -5.002830727]]],
-    'TW': ['Taiwan', [[120.106188593, 21.9705713974, 121.951243931, 25.2954588893]]],
+    'TV': ['Tuvalu', [[175.014362906, -11.134731836, -179.999999, -5.002830727]]],
+    'TW': ['Taiwan', [[120.106188593, 21.9705713974, 121.951243931, 26.2954588893]]],
     'TZ': ['Tanzania', [[29.3399975929, -11.7209380022, 40.31659, -0.95]]],
     'UA': ['Ukraine', [[22.0856083513, 44.3614785833, 40.0807890155, 52.3350745713]]],
     'UG': ['Uganda', [[29.5794661801, -1.44332244223, 35.03599, 4.24988494736]]],
@@ -572,7 +578,7 @@ codes_dict = {
   'Svalbard and Jan Mayen': 'SJ',
   'Réunion': 'RE',
   'Czechia': 'CZ',
-  'Northern Cyprus': 'CY',
+  'Northern Cyprus': 'NY', # 'NY' is an unnassigned ISO code element
   'The Netherlands': 'NL',
   'Palestinian Territory': 'PS',
   'Abkhazia': 'GE',

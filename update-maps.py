@@ -230,7 +230,7 @@ for page_number in range(number_of_pages, 0, -1):
                 already_in_list = True
 
         if not already_in_list and member_n_places > 0:
-            members_list.append([member_id, member_alias, member_name, member_avatar, member_n_places, member_n_photos member_n_countries])
+            members_list.append([member_id, member_alias, member_name, member_avatar, member_n_places, member_n_photos, member_n_countries])
 
         print("Finished!\n")
 
