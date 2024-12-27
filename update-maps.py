@@ -51,7 +51,7 @@ def sendEmail(member_name):
 
 #===== MAIN CODE ==============================================================#
 
-reset = True
+reset = False
 
 if reset:
     command = "rm {}/countries/members.py".format(repo_path)
@@ -103,6 +103,9 @@ for page_number in range(number_of_pages, 0, -1):
 
             current_members.append(member_alias)
 
+            if reset and os.path.exists("{}/last_total.py".format(member_path)):
+                continue
+
             # create member directory and topic if doesn't exist yet
             is_new_member = False
             if not os.path.isdir(member_path):
@@ -140,16 +143,18 @@ for page_number in range(number_of_pages, 0, -1):
                 prev_loc_fsize = 0
 
             htm_file = open("{}/log/index.html".format(repo_path), "a")
-            htm_file.write("<br>##### {}:<br>\n".format(member_name))
-            htm_file.close()
             log_file = open("{}/log/countries_info.log".format(repo_path), "a")
-            log_file.write("\n##### {}:\n".format(member_name))
-            log_file.close()
             rep_file = open("{}/log/countries_info.rep".format(repo_path), "a")
-            rep_file.write("\n##### {}:\n".format(member_name))
-            rep_file.close()
             err_file = open("{}/log/countries_info.err".format(repo_path), "a")
+
+            htm_file.write("<br>##### {}:<br>\n".format(member_name))
+            log_file.write("\n##### {}:\n".format(member_name))
+            rep_file.write("\n##### {}:\n".format(member_name))
             err_file.write("\n##### {}:\n".format(member_name))
+
+            htm_file.close()
+            log_file.close()
+            rep_file.close()
             err_file.close()
 
             # generate/update member's map
