@@ -12,7 +12,6 @@ cp ../the-map-group.github.io/countries_info.py .
 cp ../the-map-group.github.io/custom.js .
 cp ../the-map-group.github.io/generate-map-data.py .
 cp ../the-map-group.github.io/index.html .
-cp ../the-map-group.github.io/not_found_places.py .
 cp ../the-map-group.github.io/style.css .
 cp ../the-map-group.github.io/update-maps.py .
 cp ../the-map-group.github.io/countries/custom.js countries/
