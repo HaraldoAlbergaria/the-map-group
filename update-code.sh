@@ -3,6 +3,7 @@
 echo "Updating code repository..."
 cd ../the-map-group.github.io
 ./update-repos.sh
+COMMIT_MESSAGE=`git log -1 --pretty=%B`
 
 echo "Copying data from code repository..."
 cd ../The-Map-Group
@@ -33,11 +34,12 @@ cp ../the-map-group.github.io/people/update-html.sh people/
 cp ../the-map-group.github.io/people/update-member-map.sh people/
 git status
 
+echo "Changes: \"$COMMIT_MESSAGE\""
 read -p "Commit and push the changes? (Yes/No): " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
 
 echo "Commiting changes..."
 git add *
-git commit -m "Updated code"
+git commit -m "Updated code [$COMMIT_MESSAGE]"
 
 echo "Pushing changes..."
 git push origin main
