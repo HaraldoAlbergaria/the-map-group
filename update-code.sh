@@ -27,6 +27,8 @@ cp ../the-map-group.github.io/people/removeMembers.pl people/
 cp ../the-map-group.github.io/people/reset-member-map.sh people/
 cp ../the-map-group.github.io/people/resetMembers.pl people/
 cp ../the-map-group.github.io/people/setup-member.sh people/
+cp ../the-map-group.github.io/people/restartMembers.pl people/
+cp ../the-map-group.github.io/people/restart-member.sh people/
 cp ../the-map-group.github.io/people/style.css people/
 cp ../the-map-group.github.io/people/update-countries-map-data.py people/
 cp ../the-map-group.github.io/people/updateHtmlFiles.pl people/
