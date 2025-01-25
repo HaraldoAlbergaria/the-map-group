@@ -2,7 +2,7 @@
 
 echo "Updating code repository..."
 cd ../the-map-group.github.io
-./update-repos.sh
+./update-repo.sh
 COMMIT_MESSAGE=`git log -1 --pretty=%B`
 
 echo "Copying data from code repository..."
@@ -11,10 +11,10 @@ git checkout -- .
 cp ../the-map-group.github.io/countries_bbox.js .
 cp ../the-map-group.github.io/countries_info.py .
 cp ../the-map-group.github.io/config.py .
+cp ../the-map-group.github.io/reset.py .
 cp ../the-map-group.github.io/custom.js .
 cp ../the-map-group.github.io/generate-map-data.py .
 cp ../the-map-group.github.io/index.html .
-cp ../the-map-group.github.io/people.html .
 cp ../the-map-group.github.io/style.css .
 cp ../the-map-group.github.io/update-maps.py .
 cp ../the-map-group.github.io/countries/custom.js countries/
@@ -25,6 +25,7 @@ cp ../the-map-group.github.io/countries/update-html.sh countries/
 cp ../the-map-group.github.io/people/config.js people/
 cp ../the-map-group.github.io/people/custom.js people/
 cp ../the-map-group.github.io/people/index.html people/
+cp ../the-map-group.github.io/people/photos.html people/
 cp ../the-map-group.github.io/people/removeMembers.pl people/
 cp ../the-map-group.github.io/people/reset-member-map.sh people/
 cp ../the-map-group.github.io/people/resetMembers.pl people/
