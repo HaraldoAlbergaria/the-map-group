@@ -10,6 +10,7 @@ cd ../The-Map-Group
 git checkout -- .
 cp ../the-map-group.github.io/countries_bbox.js .
 cp ../the-map-group.github.io/countries_info.py .
+cp ../the-map-group.github.io/matrix.py .
 cp ../the-map-group.github.io/config.py .
 cp ../the-map-group.github.io/reset.py .
 cp ../the-map-group.github.io/custom.js .
