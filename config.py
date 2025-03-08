@@ -1,7 +1,7 @@
 ### UPDATE MAPS
 
 # reset all members maps
-reset_all = True
+reset_all = False
 force_reset = False
 
 # reset coords_dict
