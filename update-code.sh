@@ -43,6 +43,13 @@ git status
 echo "Changes: \"$COMMIT_MESSAGE\""
 read -p "Commit and push the changes? (Yes/No): " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
 
+read -p "Edit commit message? (Yes/No): " confirm
+
+if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]];
+    then
+        read -p "New message: " COMMIT_MESSAGE
+fi
+
 echo "Commiting changes..."
 git add *
 git commit -m "Updated code [$COMMIT_MESSAGE]"
